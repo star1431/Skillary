@@ -8,7 +8,5 @@ services:
       - ./app:/app/app/
       - ./jsconfig.json:/app/jsconfig.json
       - /app/node_modules
-    env_file:
-      - .env.dev
     ports:
       - "3000:3000"

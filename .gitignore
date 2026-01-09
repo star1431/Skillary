@@ -1,5 +1,6 @@
 # OS 관련
 .DS_Store           # macOS
+*/.DS_Store
 Thumbs.db           # Windows
 Desktop.ini         # Windows
 *.swp               # Vim

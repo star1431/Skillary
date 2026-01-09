@@ -1,0 +1,92 @@
+name: EC2 CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml
+        uses: appleboy/scp-action@v4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          source: "docker-compose.yml"
+          target: "/app"
+
+      - name: Write .env.* files
+        uses: seonghun120614/Skillary@v2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          user: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          known_hosts: ${{ secrets.EC2_SSH_KNOWN_HOSTS }} # ssh-keyscan SERVER_IP
+
+          first_ssh: |
+            echo "Starting deployment..."
+            echo "Connected from a GitHub Actions runner!"
+            cd /app/
+
+          scp: |
+            # Copy build artifacts or other files
+            # Format: 'local/path => remote/path'
+            docker-compose.yml => ./
+            nginx.conf => ./
+          
+          last_ssh: |
+            echo "File 전송 완료."
+
+
+            echo "Front 환경 설정 중..."
+            cat <<EOF > .env.front
+            NEXT_PUBLIC_FRONT_API_URL=${{ secrets.NEXT_PUBLIC_FRONT_API_URL }}
+            EOF
+            echo "Front 환경 설정 완료!"
+
+
+            echo "Back 환경 설정 중..."
+            cat <<EOF > .env.back
+            SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}
+            SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER }}
+            SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+            SPRING_JPA_SHOW_SQL=false
+            SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=false
+            SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
+            SPRING_PROFILES_ACTIVE=prod
+            JWT_ACCESS_SECRET_KEY=${{ secrets.JWT_ACCESS_SECRET_KEY }}
+            JWT_REFRESH_SECRET_KEY=${{ secrets.JWT_REFRESH_SECRET_KEY }}
+            JWT_ACCESS_EXPIRATION_MS=${{ secrets.JWT_ACCESS_EXPIRATION_MS }}
+            JWT_REFRESH_EXPIRATION_MS=${{ secrets.JWT_REFRESH_EXPIRATION_MS }}
+            EOF
+            echo "Back 환경 설정 완료!"
+
+
+            echo "DB 환경 설정 중..."
+            cat <<EOF > .env.db
+            MYSQL_USER=${{ secrets.MYSQL_USER }}
+            MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
+            MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+            MYSQL_QUERY_CACHE_SIZE=${{ secrets.MYSQL_QUERY_CACHE_SIZE }}
+            MYSQL_THREAD_CACHE_SIZE=${{ secrets.MYSQL_THREAD_CACHE_SIZE }}
+            MYSQL_INNODB_BUFFER_POOL_SIZE=${{ secrets.MYSQL_INNODB_BUFFER_POOL_SIZE }}
+            MYSQL_MAX_CONNECTIONS=${{ secrets.MYSQL_MAX_CONNECTIONS }}
+            EOF
+            
+            
+            docker compose down
+            docker compose pull
+            docker compose up -d
+
+            echo "정리 중..."
+            docker image prune -f

@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'skillary:comments:v1'
+export const COMMENTS_CHANGED_EVENT = 'skillary:comments-changed'
 
 /**
  * @typedef {Object} Comment
@@ -58,10 +59,16 @@ function writeAll(next) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     // 같은 탭에서는 storage 이벤트가 안 떠서 커스텀 이벤트로 UI 갱신 트리거
-    window.dispatchEvent(new Event('skillary:comments-changed'))
+    window.dispatchEvent(new Event(COMMENTS_CHANGED_EVENT))
   } catch {
     // ignore
   }
+}
+
+export function subscribeCommentsChanged(handler) {
+  if (typeof window === 'undefined') return () => {}
+  window.addEventListener(COMMENTS_CHANGED_EVENT, handler)
+  return () => window.removeEventListener(COMMENTS_CHANGED_EVENT, handler)
 }
 
 export function listCommentsByContent(contentId, { order = 'asc' } = {}) {

@@ -6,7 +6,7 @@ import { formatCurrency, formatDate, truncateText } from '../utils/formatters';
 import { getContentAccessBadgeVariant, getContentAccessLabel } from '../utils/helpers';
 import { CONTENT_ACCESS_TYPE } from '../config/constants';
 import { getCreatorById } from '@/lib/creatorRepo';
-import { getCommentCountByContent } from '@/lib/commentsRepo';
+import { getCommentCountByContent, subscribeCommentsChanged } from '@/lib/commentsRepo';
 
 export function ContentCard({ content, onClick }) {
   const creator = getCreatorById(content.creatorId);
@@ -16,8 +16,7 @@ export function ContentCard({ content, onClick }) {
     if (!content?.id) return;
     const refresh = () => setCommentCount(getCommentCountByContent(content.id));
     refresh();
-    window.addEventListener('skillary:comments-changed', refresh);
-    return () => window.removeEventListener('skillary:comments-changed', refresh);
+    return subscribeCommentsChanged(refresh);
   }, [content?.id]);
 
   const getAccessBadge = () => {

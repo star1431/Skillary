@@ -15,7 +15,13 @@ import { getContentAccessLabel } from '../utils/helpers';
 import { getVideoEmbedInfo, parseContentBody } from '../utils/contentBlocks';
 import { getContentById } from '@/lib/contentRepo';
 import { getCreatorById, getCreatorByUserId, listPlansByCreator } from '@/lib/creatorRepo';
-import { addComment, deleteComment, listCommentsByContent, toggleCommentLike } from '@/lib/commentsRepo';
+import {
+  addComment,
+  deleteComment,
+  listCommentsByContent,
+  subscribeCommentsChanged,
+  toggleCommentLike,
+} from '@/lib/commentsRepo';
 
 export function ContentDetailPage({ contentId, onNavigate }) {
   const { user } = useAuth();
@@ -86,8 +92,7 @@ export function ContentDetailPage({ contentId, onNavigate }) {
       const order = sortOrder === 'newest' ? 'desc' : 'asc';
       setComments(listCommentsByContent(content.id, { order }));
     };
-    window.addEventListener('skillary:comments-changed', handler);
-    return () => window.removeEventListener('skillary:comments-changed', handler);
+    return subscribeCommentsChanged(handler);
   }, [content?.id, sortOrder]);
 
   const refreshComments = () => {
@@ -205,6 +210,16 @@ export function ContentDetailPage({ contentId, onNavigate }) {
   };
 
   const authorUserId = creator?.userId || null;
+
+  const creatorUserIdSet = useMemo(() => {
+    // mockCreators 기반이라 호출 비용은 작지만, 댓글/답글 렌더링에서 반복 호출을 피하기 위해 캐싱
+    const set = new Set();
+    for (const c of comments) {
+      if (!c?.userId) continue;
+      if (getCreatorByUserId(c.userId)) set.add(c.userId);
+    }
+    return set;
+  }, [comments]);
 
   const { topLevelComments, repliesByParent } = useMemo(() => {
     const top = [];
@@ -440,7 +455,7 @@ export function ContentDetailPage({ contentId, onNavigate }) {
                         const liked = !!user && (c.likedByUserIds || []).includes(user.id);
                         const likeCount = (c.likedByUserIds || []).length;
                         const isAuthor = !!authorUserId && c.userId === authorUserId;
-                        const isCreator = !!getCreatorByUserId(c.userId);
+                        const isCreator = creatorUserIdSet.has(c.userId);
                         return (
                           <div key={c.id} className="rounded-lg border bg-white p-4">
                             <div className="flex items-start justify-between gap-4">
@@ -532,7 +547,7 @@ export function ContentDetailPage({ contentId, onNavigate }) {
                                   const rLiked = !!user && (r.likedByUserIds || []).includes(user.id);
                                   const rLikeCount = (r.likedByUserIds || []).length;
                                   const rIsAuthor = !!authorUserId && r.userId === authorUserId;
-                                  const rIsCreator = !!getCreatorByUserId(r.userId);
+                                  const rIsCreator = creatorUserIdSet.has(r.userId);
                                   return (
                                     <div key={r.id} className="rounded-lg border bg-white p-3">
                                       <div className="flex items-start justify-between gap-4">

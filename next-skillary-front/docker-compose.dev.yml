@@ -5,8 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     image: qna-next:1.0
     volumes:
-      - ./app:/app/app/
-      - ./jsconfig.json:/app/jsconfig.json
+      - ./:/app
       - /app/node_modules
     ports:
       - "3000:3000"

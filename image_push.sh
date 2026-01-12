@@ -1,13 +1,10 @@
 #!/bin/bash
 
+set -e
+
 # 1. 변수 설정 (사용자 계정명)
 DOCKER_USER="seonghun120614"
 TAG="latest"
-
-docker buildx build \
-    --platform linux/amd64 \
-    -t $DOCKER_USER/nginx-skillary:$TAG ./nginx-skillary-proxy \
-    --push
 
 docker buildx build \
     --platform linux/amd64 \

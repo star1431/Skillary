@@ -11,6 +11,9 @@ services:
 
   front:
     image: seonghun120614/next-skillary:latest
+    build:
+      context: ./next-skillary-front
+      dockerfile: Dockerfile
     env_file: .env.front
     depends_on:
       back:
@@ -18,6 +21,9 @@ services:
 
   back:
     image: seonghun120614/spring-skillary:latest
+    build:
+      context: ./spring-skillary-back
+      dockerfile: Dockerfile
     env_file: .env.back
     depends_on:
       db:

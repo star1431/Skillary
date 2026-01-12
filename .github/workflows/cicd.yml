@@ -22,7 +22,7 @@ jobs:
           target: "/app"
 
       - name: Write .env.* files
-        uses: nmhyrhn/Skillary@v0.1.7
+        uses: ReForward-Project/Skillary@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           user: ${{ secrets.EC2_USERNAME }}

@@ -28,14 +28,14 @@ public class EmailVerification {
     private String code;
 
     @Column(nullable = false)
-    private LocalDateTime expiresAt;
+    private LocalDateTime expiresAt; // 인증 코드 만료 시간
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt; // 인증 코드 생성 시간
 
     public EmailVerification(String email, String code, LocalDateTime expiresAt) {
-        this.email = email;
-        this.code = code;
-        this.expiresAt = expiresAt;
+        this.email = email; // 이메일
+        this.code = code; // 인증 코드
+        this.expiresAt = expiresAt; // 인증 코드 만료 시간
     }
 }

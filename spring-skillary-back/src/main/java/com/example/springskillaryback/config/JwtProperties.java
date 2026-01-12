@@ -15,9 +15,9 @@ public class JwtProperties {
     @NotBlank
     private String secret;
 
-    @Min(1)
+    @Min(1) // 액세스 토큰 만료 (분)
     private int accessExpiryMinutes = 30;
 
-    @Min(1)
+    @Min(1) // 리프레시 토큰 만료 (일)
     private int refreshExpiryDays = 30;
 }

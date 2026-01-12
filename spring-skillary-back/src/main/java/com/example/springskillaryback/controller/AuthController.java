@@ -25,14 +25,14 @@ public class AuthController {
     private final JwtProperties jwtProperties;
 
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) { // 회원 가입
         try {
-            TokensDto tokens = authService.register(request.email(), request.password(), request.nickname());
-            return ResponseEntity.status(201)
-                    .header("Set-Cookie", buildAccessCookie(tokens.accessToken()).toString())
+            TokensDto tokens = authService.register(request.email(), request.password(), request.nickname()); // 회원 가입 서비스 호출
+            return ResponseEntity.status(201) // 201 Created 상태 코드 반환
+                    .header("Set-Cookie", buildAccessCookie(tokens.accessToken()).toString()) // 액세스 토큰 쿠키 설정
                     .build();
         } catch (Exception exception) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError().build(); // 500 Internal Server Error 상태 코드 반환
         }
     }
 
@@ -40,9 +40,9 @@ public class AuthController {
     public ResponseEntity<Void> sendVerificationCode(@Valid @RequestBody EmailVerificationRequest request) {
         try {
             authService.sendCode(request.email());
-            return ResponseEntity.status(201).build();
+            return ResponseEntity.status(201).build(); // 201 상태 코드 반환
         } catch (Exception exception) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError().build(); // 500 상태 코드 반환
         }
     }
 
@@ -51,11 +51,11 @@ public class AuthController {
         try {
             boolean verified = authService.verifyCode(request.email(), request.code());
             if (!verified) {
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().build();// 400 상태 코드 반환
             }
-            return ResponseEntity.status(201).build();
+            return ResponseEntity.status(201).build(); // 201 상태 코드 반환
         } catch (Exception exception) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError().build(); // 500 상태 코드 반환
         }
 
 }
@@ -63,7 +63,7 @@ public class AuthController {
 @PostMapping("/refresh")
 public ResponseEntity<Void> refresh(@CookieValue(name = ACCESS_TOKEN_COOKIE, required = false) String accessToken) {
     if (accessToken == null || accessToken.isBlank()) {
-        return ResponseEntity.badRequest().build();
+        return ResponseEntity.badRequest().build(); // 400 상태 코드 반환
     }
     try {
         String newAccessToken = authService.refresh(accessToken);
@@ -71,16 +71,16 @@ public ResponseEntity<Void> refresh(@CookieValue(name = ACCESS_TOKEN_COOKIE, req
                 .header("Set-Cookie", buildAccessCookie(newAccessToken).toString())
                 .build();
     } catch (Exception exception) {
-        return ResponseEntity.internalServerError().build();
+        return ResponseEntity.internalServerError().build(); // 500 상태 코드 반환
     }
 }
 
 private ResponseCookie buildAccessCookie(String token) {
-    return ResponseCookie.from(ACCESS_TOKEN_COOKIE, token)
+    return ResponseCookie.from(ACCESS_TOKEN_COOKIE, token) // 액세스 토큰 쿠키 설정
             .httpOnly(true)
             .path("/")
-            .maxAge(jwtProperties.getAccessExpiryMinutes() * 60L)
-            .sameSite("Lax")
+            .maxAge(jwtProperties.getAccessExpiryMinutes() * 60L) // 액세스 토큰 만료 시간 설정
+            .sameSite("Lax") 
             .build();
 }
 }

@@ -25,7 +25,7 @@ public class VerifiedEmail {
     private String email;
 
     @CreationTimestamp
-    private LocalDateTime verifiedAt;
+    private LocalDateTime verifiedAt; // 이메일 인증 시간
 
     public VerifiedEmail(String email) {
         this.email = email;

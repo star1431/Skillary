@@ -18,6 +18,6 @@ public class EmailVerificationProperties {
     @NotBlank
     private String subject;
 
-    @Min(1)
+    @Min(1) // 인증 코드 만료 시간 (분)
     private int codeExpiryMinutes = 10;
 }

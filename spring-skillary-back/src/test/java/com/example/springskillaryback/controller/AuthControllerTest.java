@@ -26,27 +26,27 @@ class AuthControllerTest {
             return new AuthService() {
                 @Override
                 public TokensDto register(String email, String password, String nickname) {
-                    return new TokensDto("refresh-token", "access-token");
+                    return new TokensDto("refresh-token", "access-token"); // 리프레시 토큰, 액세스 토큰 반환
                 }
 
                     @Override
                     public TokensDto login(String email, String password) {
-                        return new TokensDto("refresh-token", "access-token");
+                        return new TokensDto("refresh-token", "access-token"); // 리프레시 토큰, 액세스 토큰 반환
                     }
 
                         @Override
                         public void sendCode(String email) {
                             if ("fail@example.com".equals(email)) {
-                                throw new IllegalStateException("mail error");
+                                throw new IllegalStateException("mail error"); // 메일 오류 발생
                             }
                         }
 
                             @Override
                             public boolean verifyCode(String email, String code) {
                                 if ("error@example.com".equals(email)) {
-                                    throw new IllegalStateException("verification error");
+                                    throw new IllegalStateException("verification error"); // 인증 오류 발생
                                 }
-                                return "123456".equals(code);
+                                return "123456".equals(code); // 인증 코드 일치 여부 반환
                             }
 
 
@@ -56,13 +56,13 @@ class AuthControllerTest {
 
                                     @Override
                                     public boolean withdrawal(String refreshToken) {
-                                        return false;
+                                        return false; // 회원 탈퇴 여부 반환
                                     }
 
 
                                 @Override
                                 public String refresh(String accessToken) {
-                                    return "access-token";
+                                    return "access-token"; // 액세스 토큰 반환
                                 }
                             };
                         }
@@ -76,7 +76,7 @@ class AuthControllerTest {
                     void sendVerificationCodeAccepted() throws Exception {
                         mockMvc.perform(post("/api/auth/send-confirm")
                                         .contentType(MediaType.APPLICATION_JSON)
-                                        .content("{\"email\":\"test@example.com\"}"))
+                                        .content("{\"email\":\"test@example.com\"}")) // 이메일 인증 코드 전송 요청
                                 .andExpect(status().isCreated());
                     }
 
@@ -85,7 +85,7 @@ class AuthControllerTest {
                     void sendVerificationCodeFails() throws Exception {
                         mockMvc.perform(post("/api/auth/send-confirm")
                                         .contentType(MediaType.APPLICATION_JSON)
-                                        .content("{\"email\":\"fail@example.com\"}"))
+                                        .content("{\"email\":\"fail@example.com\"}")) // 이메일 인증 코드 전송 오류 발생
                                 .andExpect(status().isInternalServerError());
                     }
 
@@ -94,7 +94,7 @@ class AuthControllerTest {
                     void verifyCodeSuccess() throws Exception {
                         mockMvc.perform(post("/api/auth/send-code")
                                         .contentType(MediaType.APPLICATION_JSON)
-                                        .content("{\"email\":\"test@example.com\",\"code\":\"123456\"}"))
+                                        .content("{\"email\":\"test@example.com\",\"code\":\"123456\"}")) // 이메일 인증 코드 유효 여부 반환
                                 .andExpect(status().isCreated());
                     }
 
@@ -103,7 +103,7 @@ class AuthControllerTest {
                     void verifyCodeInvalid() throws Exception {
                         mockMvc.perform(post("/api/auth/send-code")
                                         .contentType(MediaType.APPLICATION_JSON)
-                                        .content("{\"email\":\"test@example.com\",\"code\":\"000000\"}"))
+                                        .content("{\"email\":\"test@example.com\",\"code\":\"000000\"}")) // 이메일 인증 코드 유효하지 않은 경우
                                 .andExpect(status().isBadRequest());
                     }
 
@@ -112,7 +112,7 @@ class AuthControllerTest {
                     void verifyCodeFails() throws Exception {
                         mockMvc.perform(post("/api/auth/send-code")
                                         .contentType(MediaType.APPLICATION_JSON)
-                                        .content("{\"email\":\"error@example.com\",\"code\":\"123456\"}"))
+                                        .content("{\"email\":\"error@example.com\",\"code\":\"123456\"}")) // 이메일 인증 코드 검증 오류 발생
                                 .andExpect(status().isInternalServerError());
                     }
                 }

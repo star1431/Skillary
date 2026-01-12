@@ -10,6 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+		// 요청 권한 설정
 		return http
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/**").permitAll()

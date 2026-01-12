@@ -28,14 +28,14 @@ public class RefreshToken {
     private Byte userId;
 
     @Column(nullable = false)
-    private LocalDateTime expiresAt;
+    private LocalDateTime expiresAt; // 리프레시 토큰 만료 시간
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt; // 리프레시 토큰 생성 시간
 
     public RefreshToken(String token, Byte userId, LocalDateTime expiresAt) {
         this.token = token;
         this.userId = userId;
-        this.expiresAt = expiresAt;
+        this.expiresAt = expiresAt; // 리프레시 토큰 만료 시간
     }
 }

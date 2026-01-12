@@ -29,6 +29,16 @@ export function SignupPage({ onNavigate }) {
     try {
       // TODO: 실제 SMTP 이메일 전송 API 호출
       // await sendVerificationEmail(email);
+        const response = await fetch('/api/auth/email/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to send verification email');
+        }
       toast.success('인증 코드가 이메일로 전송되었습니다.');
       setIsEmailSent(true);
     } catch (error) {
@@ -48,6 +58,16 @@ export function SignupPage({ onNavigate }) {
     try {
       // TODO: 실제 인증 코드 검증 API 호출
       // await verifyEmailCode(email, verificationCode);
+        const response = await fetch('/api/auth/email/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, code: verificationCode }),
+        });
+        if (!response.ok) {
+            throw new Error('Invalid verification code');
+        }
       toast.success('이메일 인증이 완료되었습니다.');
       setIsEmailVerified(true);
     } catch (error) {

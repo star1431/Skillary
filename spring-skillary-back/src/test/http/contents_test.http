@@ -1,0 +1,115 @@
+@baseUrl = http://localhost:8080
+@contentId = 1
+@creatorId = 1
+@commentId = 1
+@postId = 1
+@userId = 1
+
+@imageUrl = https://skillary-s3.s3.ap-northeast-2.amazonaws.com/dev/images/61d0dca1-a010-4fcc-a7fc-834cbf826afe.png
+@videoUrl = https://skillary-s3.s3.ap-northeast-2.amazonaws.com/dev/images/ad5b8e45-3344-49e1-8fef-3840f3432b10.mp4
+@imageUrl2 = https://skillary-s3.s3.ap-northeast-2.amazonaws.com/dev/images/1456a8d0-8d4b-4ccb-a793-42f8b0d56368.jpg
+
+### 1. file 이미지 테스트
+POST {{baseUrl}}/api/files/image
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="image_test2.jpg"
+Content-Type: image/jpg
+
+< D:\testfile\image_test2.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 2. file 영상 테스트
+POST {{baseUrl}}/api/files/image
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="video_test.mp4"
+Content-Type: video/mp4
+
+< D:\testfile\video_test.mp4
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+
+### 3. 콘텐츠 생성
+### 프론트에서 파일 업로드 api 선행 → S3 URL 받음 → JSON에 포함해서 보냄
+POST {{baseUrl}}/api/contents
+Content-Type: application/json
+X-Creator-Id: {{creatorId}}
+
+{
+  "title": "테스트 콘텐츠 제목",
+  "category": "EXERCISE",
+  "price": 10000,
+  "planId": 1,
+  "thumbnailUrl": "{{imageUrl}}",
+  "body": "텍스트텍스트\n![이미지1]({{imageUrl}})\n텍스트\n@[video]({{videoUrl}})\n텍스트텍스트",
+  "postFiles": [
+    "{{imageUrl}}",
+    "{{videoUrl}}"
+  ]
+}
+
+
+### 4. 콘텐츠 목록 조회
+GET {{baseUrl}}/api/contents?page=0&size=10
+Content-Type: application/json
+
+
+### 5. 콘텐츠 단건 조회
+GET {{baseUrl}}/api/contents/{{contentId}}
+Content-Type: application/json
+
+
+### 6. 콘텐츠 수정
+PUT {{baseUrl}}/api/contents/{{contentId}}
+Content-Type: application/json
+X-Creator-Id: {{creatorId}}
+
+{
+  "title": "수정된 콘텐츠 제목",
+  "category": "VIDEO",
+  "price": 15000,
+  "planId": 2,
+  "thumbnailUrl": "{{imageUrl}}",
+  "body": "수정된 텍스트\n@[video]({{imageUrl2}})\n텍스트\n![이미지]({{videoUrl}})",
+  "postFiles": [
+    "{{imageUrl2}}",
+    "{{videoUrl}}"
+  ]
+}
+
+### 7. 콘텐츠 삭제
+DELETE {{baseUrl}}/api/contents/{{contentId}}
+Content-Type: application/json
+X-Creator-Id: {{creatorId}}
+
+
+### 8. 댓글 추가
+POST {{baseUrl}}/api/comments
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "postId": {{postId}},
+  "comment": "테스트 댓글입니다."
+}
+
+
+### 9. 댓글 수정
+PUT {{baseUrl}}/api/comments/{{commentId}}
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "postId": {{postId}},
+  "comment": "수정된 댓글 내용입니다."
+}
+
+
+### 10. 댓글 삭제
+DELETE {{baseUrl}}/api/comments/{{commentId}}
+Content-Type: application/json
+

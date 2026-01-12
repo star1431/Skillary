@@ -1,7 +1,9 @@
 package com.example.springskillaryback.domain;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -14,6 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +25,7 @@ import java.util.List;
 @Entity
 @Builder
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Post {
@@ -29,20 +33,22 @@ public class Post {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Byte postId;
 
-	@Column(nullable = false)
-	private String url;
-
-	@Column(nullable = false)
+	@Column(nullable = false, columnDefinition = "TEXT")
 	private String body;
 
-	@OneToOne(mappedBy = "post")
+	@OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+	@Builder.Default
+	private List<PostFile> fileList = new ArrayList<>(); // 본문에 삽입된 이미지/영상 리스트 (순서대로)
+
+	@OneToOne
+	@JoinColumn(name = "content_id", nullable = false)
 	private Content content;
 
-	@OneToMany
+	@OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
 	@Builder.Default
-	@JoinColumn(name = "post_id")
 	private List<Comment> comments = new ArrayList<>();
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "creator_id", nullable = false)
 	private Creator creator;
 }

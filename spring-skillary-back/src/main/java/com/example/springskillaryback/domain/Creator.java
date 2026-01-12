@@ -1,5 +1,14 @@
 package com.example.springskillaryback.domain;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,14 +22,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @Table(name = "creators")
 @Entity
@@ -62,7 +63,6 @@ public class Creator {
 	List<CreatorSettlement> settlements = new ArrayList<>();
 
     @Builder.Default
-	@OneToMany
-	@JoinColumn(name = "creator_id", nullable = false)
+	@OneToMany(mappedBy = "creator") // [임시] 로컬 작업중 매핑오류 임시 수정
 	List<Content> contents = new ArrayList<>();
 }

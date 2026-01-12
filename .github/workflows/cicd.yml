@@ -11,48 +11,36 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose.yml
+      - name: Copy files (docker-compose.yml and default.conf)
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
-          source: "docker-compose.yml"
+          source: "docker-compose.yml,default.conf"
           target: "/app"
 
-      - name: Write .env.* files
-        uses: ReForward-Project/Skillary@v0.1.7
+      - name: Write .env.* files and deploy
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          user: ${{ secrets.EC2_USERNAME }}
+          username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          known_hosts: ${{ secrets.EC2_SSH_KNOWN_HOSTS }} # ssh-keyscan SERVER_IP
-
-          first_ssh: |
-            echo "Starting deployment..."
-            echo "Connected from a GitHub Actions runner!"
+          port: ${{ secrets.EC2_PORT }}
+          script: |
             cd /app/
-
-          scp: |
-            # Copy build artifacts or other files
-            # Format: 'local/path => remote/path'
-            docker-compose.yml => ./
-            nginx.conf => ./
-          
-          last_ssh: |
+            
             echo "File 전송 완료."
-
-
+            
             echo "Front 환경 설정 중..."
-            cat <<EOF > .env.front
+            cat > .env.front <<EOF
             NEXT_PUBLIC_FRONT_API_URL=${{ secrets.NEXT_PUBLIC_FRONT_API_URL }}
             EOF
             echo "Front 환경 설정 완료!"
 
-
             echo "Back 환경 설정 중..."
-            cat <<EOF > .env.back
+            cat > .env.back <<EOF
             SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}
             SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER }}
             SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
@@ -70,9 +58,8 @@ jobs:
             EOF
             echo "Back 환경 설정 완료!"
 
-
             echo "DB 환경 설정 중..."
-            cat <<EOF > .env.db
+            cat > .env.db <<EOF
             MYSQL_USER=${{ secrets.MYSQL_USER }}
             MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
             MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
@@ -82,11 +69,13 @@ jobs:
             MYSQL_INNODB_BUFFER_POOL_SIZE=${{ secrets.MYSQL_INNODB_BUFFER_POOL_SIZE }}
             MYSQL_MAX_CONNECTIONS=${{ secrets.MYSQL_MAX_CONNECTIONS }}
             EOF
+            echo "DB 환경 설정 완료!"
             
-            
+            echo "Docker Compose 실행 중..."
             docker compose down
             docker compose pull
             docker compose up -d
 
             echo "정리 중..."
             docker image prune -f
+            echo "배포 완료!"

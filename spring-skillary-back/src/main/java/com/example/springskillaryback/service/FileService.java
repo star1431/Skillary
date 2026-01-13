@@ -8,8 +8,6 @@ public interface FileService {
 	
 	String uploadFile(MultipartFile file, String subDir, Byte contentId) throws IOException;
 	
-	byte[] downloadFile(String filePath) throws IOException;
-	
 	/** S3 URL인지 확인 */
 	boolean isS3Url(String url);
 }

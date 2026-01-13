@@ -63,24 +63,6 @@ public class S3FileServiceImpl implements FileService {
 		}
 	}
 
-	/** 파일 다운로드 */
-	@Override
-	public byte[] downloadFile(String filePath) throws IOException {
-		try {
-			String objectKey = extractObjectKey(filePath);
-			GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-				.bucket(bucketName)
-				.key(objectKey)
-				.build();
-
-			return s3Client.getObjectAsBytes(getObjectRequest).asByteArray();
-		} catch (NoSuchKeyException e) {
-			throw new IOException("해당 파일 존재하지 않음: " + filePath, e);
-		} catch (S3Exception e) {
-			throw new IOException("S3 파일 다운로드 실패: " + e.getMessage());
-		}
-	}
-
 	/** 파일 삭제 */
 	@Override
 	public boolean deleteFile(String fileUrl) {

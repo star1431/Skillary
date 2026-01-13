@@ -52,55 +52,5 @@ public class FileUploadController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(fileType + " 업로드 실패");
 		}
 	}
-
-	/** 이미지 파일 제공 (S3에서 다운로드하여 제공) */
-	@GetMapping("/images/{fileName:.+}")
-	public ResponseEntity<byte[]> getImage(@PathVariable String fileName) {
-		return getFile(fileName, "images", "이미지");
-	}
-
-	/** 영상 파일 제공 (S3에서 다운로드하여 제공) */
-	@GetMapping("/videos/{fileName:.+}")
-	public ResponseEntity<byte[]> getVideo(@PathVariable String fileName) {
-		return getFile(fileName, "videos", "영상");
-	}
-
-	private ResponseEntity<byte[]> getFile(String fileName, String subDir, String fileType) {
-		try {
-			String filePath = (fileName.startsWith("dev/") || fileName.startsWith("prod/"))
-				? fileName
-				: subDir + "/" + fileName;
-			byte[] fileData = fileService.downloadFile(filePath);
-			String contentType = getContentType(fileName);
-			return ResponseEntity.ok()
-				.contentType(MediaType.parseMediaType(contentType))
-				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
-				.body(fileData);
-		} catch (IOException e) {
-			log.warn("[FileUploadController] {} 못찾음: {}", fileType, fileName);
-			return ResponseEntity.notFound().build();
-		}
-	}
-
-	/** 파일 확장자 기반 Content-Type 추론 */
-	private String getContentType(String fileName) {
-		String lowerFileName = fileName.toLowerCase();
-		if (lowerFileName.endsWith(".jpg") || lowerFileName.endsWith(".jpeg")) {
-			return "image/jpeg";
-		} else if (lowerFileName.endsWith(".png")) {
-			return "image/png";
-		} else if (lowerFileName.endsWith(".gif")) {
-			return "image/gif";
-		} else if (lowerFileName.endsWith(".webp")) {
-			return "image/webp";
-		} else if (lowerFileName.endsWith(".mp4")) {
-			return "video/mp4";
-		} else if (lowerFileName.endsWith(".webm")) {
-			return "video/webm";
-		} else if (lowerFileName.endsWith(".mov")) {
-			return "video/quicktime";
-		}
-		return "application/octet-stream";
-	}
 }
 

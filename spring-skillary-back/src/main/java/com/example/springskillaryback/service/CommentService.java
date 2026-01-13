@@ -1,13 +1,18 @@
 package com.example.springskillaryback.service;
 
 import com.example.springskillaryback.common.dto.CommentRequestDto;
+import com.example.springskillaryback.common.dto.CommentResponseDto;
 import com.example.springskillaryback.domain.Comment;
 
+import java.util.List;
+
 public interface CommentService {
-	Comment addComment(CommentRequestDto commentRequestDto);
+	Comment addComment(Byte contentId, Byte userId, CommentRequestDto commentRequestDto);
 
-	Comment updateComment(Byte commentId, CommentRequestDto commentRequestDto);
+	List<CommentResponseDto> getComments(Byte contentId);
 
-	void deleteComment(Byte commentId, CommentRequestDto commentRequestDto);
+	Comment updateComment(Byte commentId, Byte userId, CommentRequestDto commentRequestDto);
+
+	void deleteComment(Byte commentId, Byte userId);
 }
 

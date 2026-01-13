@@ -9,33 +9,54 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/comments")
+@RequestMapping("/api/contents/{contentId}/comments")
 @RequiredArgsConstructor
 public class CommentController {
 	private final CommentService commentService;
 
+	@GetMapping
+	public ResponseEntity<List<CommentResponseDto>> getComments(
+		@PathVariable Byte contentId
+	) {
+		List<CommentResponseDto> comments = commentService.getComments(contentId);
+		return ResponseEntity.ok(comments); // 200
+	}
+
 	@PostMapping
-	public ResponseEntity<CommentResponseDto> addComment(@RequestBody CommentRequestDto requestDto) {
-		Comment comment = commentService.addComment(requestDto);
+	public ResponseEntity<CommentResponseDto> addComment(
+		@PathVariable Byte contentId,
+		@RequestHeader("X-User-Id") Byte userId, // [임시] 시큐리티 작업전
+		// @AuthenticationPrincipal CustomPrincipal customPrincipal
+		@RequestBody CommentRequestDto requestDto
+	) {
+		// Byte userId = customPrincipal.getUserId();
+		Comment comment = commentService.addComment(contentId, userId, requestDto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(CommentResponseDto.from(comment)); // 201
 	}
 
 	@PutMapping("/{commentId}")
 	public ResponseEntity<CommentResponseDto> updateComment(
 		@PathVariable Byte commentId,
+		@RequestHeader("X-User-Id") Byte userId, // [임시] 시큐리티 작업전
+		// @AuthenticationPrincipal CustomPrincipal customPrincipal
 		@RequestBody CommentRequestDto requestDto
 	) {
-		Comment comment = commentService.updateComment(commentId, requestDto);
+		// Byte userId = customPrincipal.getUserId();
+		Comment comment = commentService.updateComment(commentId, userId, requestDto);
 		return ResponseEntity.ok(CommentResponseDto.from(comment)); // 200
 	}
 
 	@DeleteMapping("/{commentId}")
 	public ResponseEntity<Void> deleteComment(
 		@PathVariable Byte commentId,
-		@RequestBody CommentRequestDto requestDto
+		@RequestHeader("X-User-Id") Byte userId // [임시] 시큐리티 작업전
+		// @AuthenticationPrincipal CustomPrincipal customPrincipal
 	) {
-		commentService.deleteComment(commentId, requestDto);
+		// Byte userId = customPrincipal.getUserId();
+		commentService.deleteComment(commentId, userId);
 		return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
 	}
 }

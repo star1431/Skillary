@@ -1,13 +1,14 @@
 package com.example.springskillaryback.repository;
 
-import com.example.springskillaryback.domain.Content;
+import java.util.Optional;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import java.util.Optional;
+import com.example.springskillaryback.domain.Content;
 
 public interface ContentRepository extends JpaRepository<Content, Byte> {
 	Optional<Content> findByTitle(String title);
@@ -19,4 +20,8 @@ public interface ContentRepository extends JpaRepository<Content, Byte> {
 
 	@EntityGraph(attributePaths = {"creator", "post", "post.fileList", "post.comments", "post.comments.user"})
 	Optional<Content> findById(Byte contentId);
+
+	// content post 조인
+	@EntityGraph(attributePaths = {"post"})
+	Optional<Content> findByIdWithPost(Byte contentId);
 }

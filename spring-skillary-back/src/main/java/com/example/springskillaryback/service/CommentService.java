@@ -14,5 +14,7 @@ public interface CommentService {
 	Comment updateComment(Byte commentId, Byte userId, CommentRequestDto commentRequestDto);
 
 	void deleteComment(Byte commentId, Byte userId);
+
+	void toggleLike(Byte commentId, Byte userId);
 }
 

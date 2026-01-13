@@ -59,5 +59,16 @@ public class CommentController {
 		commentService.deleteComment(commentId, userId);
 		return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
 	}
+
+	@PostMapping("/{commentId}/like")
+	public ResponseEntity<Void> toggleLike(
+		@PathVariable Byte commentId,
+		@RequestHeader("X-User-Id") Byte userId // [임시] 시큐리티 작업전
+		// @AuthenticationPrincipal CustomPrincipal customPrincipal
+	) {
+		// Byte userId = customPrincipal.getUserId();
+		commentService.toggleLike(commentId, userId);
+		return ResponseEntity.ok().build(); // 200
+	}
 }
 

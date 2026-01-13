@@ -56,14 +56,17 @@ public class ContentServiceImpl implements ContentService {
 
 		Content savedContent = contentRepository.save(content);
 
-		Post post = Post.builder()
-			.body(requestDto.body())
-			.creator(creator)
-			.content(savedContent)
-			.build();
+		Post post = null;
+		if (requestDto.post() != null) {
+			post = Post.builder()
+				.body(requestDto.post().body())
+				.creator(creator)
+				.content(savedContent)
+				.build();
 
-		createPostFiles(post, requestDto.postFiles());
-		savedContent.setPost(post);
+			createPostFiles(post, requestDto.post().postFiles());
+			savedContent.setPost(post);
+		}
 
 		return ContentResponseDto.from(savedContent);
 	}
@@ -89,11 +92,22 @@ public class ContentServiceImpl implements ContentService {
 		content.setPlan(plan);
 		content.setThumbnailUrl(requestDto.thumbnailUrl());
 
-		if (content.getPost() != null) {
-			Post post = content.getPost();
-			post.setBody(requestDto.body());
-			post.getFileList().clear();
-			createPostFiles(post, requestDto.postFiles());
+		if (requestDto.post() != null) {
+			if (content.getPost() != null) {
+				Post post = content.getPost();
+				post.setBody(requestDto.post().body());
+				post.getFileList().clear();
+				createPostFiles(post, requestDto.post().postFiles());
+			} else {
+				// Post가 없으면 새로 생성
+				Post post = Post.builder()
+					.body(requestDto.post().body())
+					.creator(content.getCreator())
+					.content(content)
+					.build();
+				createPostFiles(post, requestDto.post().postFiles());
+				content.setPost(post);
+			}
 		}
 
 		Content savedContent = contentRepository.save(content);

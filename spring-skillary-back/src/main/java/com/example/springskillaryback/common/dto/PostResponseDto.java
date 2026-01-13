@@ -8,7 +8,7 @@ import java.util.List;
 public record PostResponseDto(
 		Byte postId,
 		String body,
-		List<String> postFiles, // 본문에 삽입된 이미지/영상 URL들
+		List<String> postFiles,
 		List<CommentResponseDto> comments
 ) {
 	public static PostResponseDto from(Post post) {

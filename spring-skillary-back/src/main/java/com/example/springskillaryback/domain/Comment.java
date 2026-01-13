@@ -54,4 +54,8 @@ public class Comment {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
+
+	@Builder.Default
+	@OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<CommentLike> likes = new ArrayList<>();
 }

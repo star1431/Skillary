@@ -42,6 +42,9 @@ public class ContentServiceImpl implements ContentService {
 		Creator creator = creatorRepository.findById(creatorId)
 			.orElseThrow(() -> new IllegalArgumentException("크리에이터 없음"));
 
+		// 구독, 단건 검증 처리
+		contentValid(requestDto.planId(), requestDto.price());
+
 		SubscriptionPlan plan = null;
 		if (requestDto.planId() != null) {
 			plan = subscriptionPlanRepository.findById(requestDto.planId())
@@ -54,6 +57,7 @@ public class ContentServiceImpl implements ContentService {
             .description(requestDto.description())
 			.creator(creator)
 			.plan(plan)
+			.price(requestDto.price())
 			.thumbnailUrl(requestDto.thumbnailUrl())
 			.build();
 
@@ -84,18 +88,30 @@ public class ContentServiceImpl implements ContentService {
 			throw new IllegalArgumentException("권한 없음");
 		}
 
-		SubscriptionPlan plan = null;
+		Byte checkPlanId = content.getPlan() != null ? content.getPlan().getPlanId() : null;
+		if(requestDto.planId() != null) checkPlanId = requestDto.planId();
+		Integer checkPrice = content.getPrice();
+		if(requestDto.price() != null) checkPrice = requestDto.price();
+
+		// 구독, 단건 검증 처리
+		contentValid(checkPlanId, checkPrice);
+
+		// plan price 관련 요청값 반영
 		if (requestDto.planId() != null) {
-			plan = subscriptionPlanRepository.findById(requestDto.planId())
+			SubscriptionPlan plan = subscriptionPlanRepository.findById(requestDto.planId())
 				.orElseThrow(() -> new IllegalArgumentException("플랜 없음"));
+			content.setPlan(plan);
+			content.setPrice(null);
+		} else if (requestDto.price() != null) {
+			content.setPrice(requestDto.price());
+			content.setPlan(null);
 		}
 
         if(requestDto.title() != null) content.setTitle(requestDto.title());
         if(requestDto.description() != null) content.setDescription(requestDto.description());
         if(requestDto.category() != null) content.setCategory(requestDto.category());
         if(requestDto.thumbnailUrl() != null) content.setThumbnailUrl(requestDto.thumbnailUrl());
-		content.setPlan(plan);
-        
+
         // 본문 수정시
 		if (requestDto.post() != null) {
 			if (content.getPost() != null) {
@@ -155,7 +171,7 @@ public class ContentServiceImpl implements ContentService {
 
 	/** 콘텐츠 상세 조회 (포스트, 댓글 포함) */
 	@Override
-	@Transactional  // 콘텐츠 상세 조회할때 카운트로 쓰기 변경
+	@Transactional // 콘텐츠 상세 조회할때 카운트로 쓰기로 변경
 	public ContentResponseDto getContent(Byte contentId) {
 		Content content = contentRepository.findByIdForDetail(contentId)
 			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
@@ -254,5 +270,18 @@ public class ContentServiceImpl implements ContentService {
 		}
 	}
 
+    /** 구독, 단건 검증 처리 */
+	private void contentValid(Byte planId, Integer price) {
+		boolean hasPlanId = planId != null;
+		boolean hasPrice = price != null;
+        
+		// 둘 다 존재하는 경우 불가능
+		if (hasPlanId && hasPrice) {
+			throw new IllegalArgumentException("플랜과 단건 가격 동시 존재 불가능");
+		}
+		if (hasPrice && price <= 0) {
+			throw new IllegalArgumentException("단건 가격 0원보다 높아야 함");
+		}
+	}
 }
 

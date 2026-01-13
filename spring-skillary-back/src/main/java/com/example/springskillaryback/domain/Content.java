@@ -56,6 +56,9 @@ public class Content {
 	@JoinColumn(name = "plan_id")
 	private SubscriptionPlan plan;
 
+	@Column(nullable = true)
+	private Integer price; // price plan 동시 x <- 서비스단 검증
+
 	@OneToOne(mappedBy = "content", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Post post;
 

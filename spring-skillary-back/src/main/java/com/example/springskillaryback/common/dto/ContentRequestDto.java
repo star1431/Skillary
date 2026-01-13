@@ -7,6 +7,7 @@ public record ContentRequestDto(
         String description,
 		CategoryEnum category,
 		Byte planId,
+		Integer price,
 		String thumbnailUrl,
 		PostRequestDto post
 ) { }

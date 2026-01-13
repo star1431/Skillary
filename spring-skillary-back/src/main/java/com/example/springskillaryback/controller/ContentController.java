@@ -1,7 +1,9 @@
 package com.example.springskillaryback.controller;
 
+import com.example.springskillaryback.common.dto.CategoryResponseDto;
 import com.example.springskillaryback.common.dto.ContentRequestDto;
 import com.example.springskillaryback.common.dto.ContentResponseDto;
+import com.example.springskillaryback.domain.CategoryEnum;
 import com.example.springskillaryback.service.ContentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Slice;
@@ -9,13 +11,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/contents")
 @RequiredArgsConstructor
 public class ContentController {
 	private final ContentService contentService;
 
-	/** 콘텐츠 생성 */
 	@PostMapping
 	public ResponseEntity<ContentResponseDto> createContent(
 		@RequestBody ContentRequestDto requestDto,
@@ -37,6 +41,15 @@ public class ContentController {
         // Byte creatorId = customPrincipal.getCreatorId();
 		ContentResponseDto response = contentService.updateContent(contentId, requestDto, creatorId);
 		return ResponseEntity.ok(response); // 200
+	}
+
+	/** 카테고리 목록 조회 */
+	@GetMapping("/categories")
+	public ResponseEntity<List<CategoryResponseDto>> getCategories() {
+		List<CategoryResponseDto> categories = Arrays.stream(CategoryEnum.values())
+			.map(CategoryResponseDto::from)
+			.toList();
+		return ResponseEntity.ok(categories); // 200
 	}
 
 	@GetMapping

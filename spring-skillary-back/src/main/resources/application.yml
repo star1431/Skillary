@@ -1,3 +1,24 @@
 spring:
     application:
         name: spring-skillary-back
+    mail:
+      host: ${SPRING_MAIL_HOST:smtp.example.com}
+      port: ${SPRING_MAIL_PORT:587}
+      username: ${SPRING_MAIL_USERNAME:}
+      password: ${SPRING_MAIL_PASSWORD:}
+      properties:
+        mail:
+          smtp:
+            auth: true
+            starttls:
+              enable: true
+
+app:
+  mail:
+    from: ${APP_MAIL_FROM:no-reply@example.com}
+    subject: ${APP_MAIL_SUBJECT:Skillary 이메일 인증 코드}
+    code-expiry-minutes: ${APP_MAIL_CODE_EXPIRY_MINUTES:1000}
+  jwt:
+    secret: ${APP_JWT_SECRET:change-this-secret-to-a-long-random-value}
+    access-expiry-minutes: ${APP_JWT_ACCESS_EXPIRY_MINUTES:3000}
+    refresh-expiry-days: ${APP_JWT_REFRESH_EXPIRY_DAYS:3000}

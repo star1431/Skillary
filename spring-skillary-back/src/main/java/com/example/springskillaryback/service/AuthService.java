@@ -1,6 +1,8 @@
 package com.example.springskillaryback.service;
 
 public interface AuthService {
+//     TokensDto register(String email, String password, String nickname);
+// 	TokensDto login(String email, String password);
 	void register(String email, String password);
 
 	String login(String email, String password);
@@ -13,5 +15,5 @@ public interface AuthService {
 
 	boolean withdrawal(String refreshToken);
 
-	String refresh(String refreshToken);
+	String refresh(String accessToken);
 }

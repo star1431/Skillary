@@ -19,11 +19,23 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+		// 요청 권한 설정
 		return http
 //                .securityMatcher("/api/**")
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
+// 				)
+// 				.cors(cors -> cors.configurationSource(request -> {
+// 					CorsConfiguration config = new CorsConfiguration();
+// 					config.setAllowedOrigins(List.of("http://localhost:3000"));
+// 					config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+// 					config.setAllowedHeaders(List.of("*"));
+// 					config.setAllowCredentials(true);
+// 					config.setExposedHeaders(List.of("Set-Cookie", "Authorization"));
+// 					return config;
+// 				}))
+// 				.csrf(AbstractHttpConfigurer::disable)
                 )
                 .cors(cors -> cors.configurationSource(configurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)

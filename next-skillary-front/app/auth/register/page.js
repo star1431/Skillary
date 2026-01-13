@@ -2,11 +2,20 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [verificationCodeInput, setVerificationCodeInput] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [nickname, setNickname] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300); // 5분 = 300초
   const [isVerified, setIsVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (isCodeSent && timeLeft > 0) {
@@ -23,20 +32,80 @@ export default function RegisterPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSendCode = () => {
-    // TODO: 인증코드 전송 로직 구현
-    setIsCodeSent(true);
-    setTimeLeft(300);
+  const handleSendCode = async () => {
+    setError('');
+    if (!email) {
+      setError('이메일을 입력해주세요.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/send-confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        throw new Error('인증 코드 발송에 실패했습니다.');
+      }
+      setIsCodeSent(true);
+      setTimeLeft(300);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleResendCode = () => {
-    // TODO: 인증코드 재전송 로직 구현
-    setTimeLeft(300);
+  const handleResendCode = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/send-confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        throw new Error('인증 코드 재발송에 실패했습니다.');
+      }
+      setTimeLeft(300);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVerifyCode = () => {
-    // TODO: 인증코드 확인 로직 구현
-    setIsVerified(true);
+  const handleVerifyCode = async () => {
+    setError('');
+    if (!verificationCodeInput) {
+      setError('인증 코드를 입력해주세요.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/send-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, code: verificationCodeInput }),
+      });
+      if (!response.ok) {
+        throw new Error('인증 코드가 올바르지 않습니다.');
+      }
+      setIsVerified(true);
+      setTimeLeft(0);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleNaverRegister = () => {
@@ -54,6 +123,42 @@ export default function RegisterPage() {
     console.log('Kakao 회원가입');
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (password !== passwordConfirm) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (!isVerified) {
+      setError('이메일 인증을 완료해주세요.');
+      return;
+    }
+    if (!nickname) {
+      setError('닉네임을 입력해주세요.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, nickname }),
+      });
+      if (!response.ok) {
+        throw new Error('회원가입에 실패했습니다.');
+      }
+      router.push('/auth/login');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-sm w-full">
@@ -68,8 +173,15 @@ export default function RegisterPage() {
             <p className="text-gray-600">소셜 계정으로 간편하게 가입하세요</p>
           </div>
 
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+
           {/* 이메일 회원가입 */}
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 이메일
@@ -78,15 +190,20 @@ export default function RegisterPage() {
                 <input
                   type="email"
                   id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isCodeSent}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                   placeholder="이메일을 입력하세요"
+                  required
                 />
                 <button
                   type="button"
-                  onClick={() => handleSendCode()}
-                  className="px-4 py-2 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition whitespace-nowrap"
+                  onClick={handleSendCode}
+                  disabled={isCodeSent || isLoading}
+                  className="px-4 py-2 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition whitespace-nowrap disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  전송
+                  {isLoading ? '전송 중...' : '전송'}
                 </button>
               </div>
             </div>
@@ -101,12 +218,15 @@ export default function RegisterPage() {
                     <input
                       type="text"
                       id="verificationCode"
+                      value={verificationCodeInput}
+                      onChange={(e) => setVerificationCodeInput(e.target.value)}
                       maxLength={6}
                       disabled={isVerified}
                       className={`w-full px-4 py-2 pr-20 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                         isVerified ? 'bg-gray-100 cursor-not-allowed' : ''
                       }`}
                       placeholder="인증코드를 입력하세요"
+                      required
                     />
                     {!isVerified && (
                       <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
@@ -116,20 +236,20 @@ export default function RegisterPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleVerifyCode()}
-                    disabled={isVerified}
+                    onClick={handleVerifyCode}
+                    disabled={isVerified || isLoading}
                     className={`px-4 py-2 bg-black text-white rounded-lg font-semibold transition whitespace-nowrap ${
-                      isVerified ? 'bg-gray-400 cursor-not-allowed' : 'hover:bg-gray-800'
+                      isVerified || isLoading ? 'bg-gray-400 cursor-not-allowed' : 'hover:bg-gray-800'
                     }`}
                   >
-                    확인
+                    {isLoading ? '확인 중...' : '확인'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleResendCode()}
-                    disabled={isVerified}
+                    onClick={handleResendCode}
+                    disabled={isVerified || isLoading}
                     className={`px-4 py-2 rounded-lg font-semibold transition whitespace-nowrap ${
-                      isVerified 
+                      isVerified || isLoading
                         ? 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed' 
                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
@@ -146,14 +266,31 @@ export default function RegisterPage() {
             )}
 
             <div>
+              <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">
+                닉네임
+              </label>
+              <input
+                type="text"
+                id="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                placeholder="닉네임을 입력하세요"
+                required
+              />
+            </div>
+            <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 비밀번호
               </label>
               <input
                 type="password"
                 id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="비밀번호를 입력하세요"
+                required
               />
             </div>
             <div>
@@ -163,14 +300,21 @@ export default function RegisterPage() {
               <input
                 type="password"
                 id="passwordConfirm"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="비밀번호를 다시 입력하세요"
+                required
               />
             </div>
-            <button className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">
-              회원가입
+            <button 
+              type="submit"
+              disabled={!isVerified || isLoading}
+              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {isLoading ? '처리 중...' : '회원가입'}
             </button>
-          </div>
+          </form>
 
           {/* 구분선 */}
           <div className="relative my-6">

@@ -1,11 +1,9 @@
 package com.example.springskillaryback.service;
 
-import com.example.springskillaryback.common.dto.TokensDto;
-
 public interface AuthService {
 	void register(String email, String password);
 
-	TokensDto login(String email, String password);
+	String login(String email, String password);
 
 	void sendCode(String email);
 

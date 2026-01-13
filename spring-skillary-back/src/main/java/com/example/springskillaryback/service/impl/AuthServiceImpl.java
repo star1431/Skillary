@@ -65,22 +65,52 @@ public class AuthServiceImpl implements AuthService {
         return new TokensDto(refreshToken, accessToken);
     }
 
+//     @Override
+//     public TokensDto login(String email, String password) {
+//         User user = userRepository.findByEmail(email)
+//                 .orElseThrow(() -> new IllegalStateException("invalid credentials"));
+//         if (!passwordEncoder.matches(password, user.getPassword())) {
+//             throw new IllegalStateException("invalid credentials");
+//         }
+//         refreshTokenRepository.deleteByUserId(user.getUserId());
+//         String refreshToken = jwtTokenizer.createRefreshToken(user.getUserId().toString());
+//         LocalDateTime expiresAt = LocalDateTime.ofInstant(
+//                 Instant.now().plusSeconds(60L * 60 * 24 * jwtProperties.getRefreshExpiryDays()),
+//                 ZoneId.systemDefault()
+//         );
+//         refreshTokenRepository.save(new RefreshToken(refreshToken, user.getUserId(), expiresAt));
+//         String accessToken = jwtTokenizer.createAccessToken(user.getUserId().toString());
+//         return new TokensDto(refreshToken, accessToken);
+//     }
+    private final JwtTokenizer jwtTokenizer;
+    private final RefreshTokenRepository refreshTokenRepository;
+
     @Override
-    public TokensDto login(String email, String password) {
+    @Transactional
+    public String login(String email, String password) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("invalid credentials"));
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일이 없음"));
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalStateException("invalid credentials");
+            throw new IllegalArgumentException("비밀번호가 맞지 않음");
         }
-        refreshTokenRepository.deleteByUserId(user.getUserId());
-        String refreshToken = jwtTokenizer.createRefreshToken(user.getUserId().toString());
-        LocalDateTime expiresAt = LocalDateTime.ofInstant(
-                Instant.now().plusSeconds(60L * 60 * 24 * jwtProperties.getRefreshExpiryDays()),
-                ZoneId.systemDefault()
-        );
-        refreshTokenRepository.save(new RefreshToken(refreshToken, user.getUserId(), expiresAt));
-        String accessToken = jwtTokenizer.createAccessToken(user.getUserId().toString());
-        return new TokensDto(refreshToken, accessToken);
+
+        // 토큰 생성
+        String accessToken = jwtTokenizer.createAccessToken(user.getUserId(), user.getEmail());
+        String refreshToken = jwtTokenizer.createRefreshToken(user.getUserId(), user.getEmail());
+
+        // 로그인 전 DB에 남아있는 RT 제거
+        refreshTokenRepository.deleteAllByUserId(user.getUserId());
+
+        RefreshToken rt = RefreshToken.builder()
+                .userId(user.getUserId())
+                .token(refreshToken)
+                .expiresAt(jwtTokenizer.refreshTokenExpiresAt())
+                .build();
+
+        refreshTokenRepository.save(rt);
+
+        return accessToken;
     }
 
     @Override
@@ -95,7 +125,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(String refreshToken) {
+    @Transactional
+    public void logout(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        Claims claims = jwtTokenizer.parseClaimsAllowExpired(accessToken);
+        Byte userId = Byte.valueOf(claims.getSubject());
+
+        refreshTokenRepository.deleteAllByUserId(userId);
     }
 
     @Override
@@ -103,16 +141,35 @@ public class AuthServiceImpl implements AuthService {
         return false;
     }
 
-    @Override
+//     @Override
+//     public String refresh(String accessToken) {
+//         Claims claims = jwtTokenizer.parseClaims(accessToken, true);
+//         Byte userId = Byte.valueOf(claims.getSubject());
+//         RefreshToken stored = refreshTokenRepository.findByUserId(userId)
+//                 .orElseThrow(() -> new IllegalStateException("refresh token not found"));
+//         if (stored.getExpiresAt().isBefore(LocalDateTime.now())) {
+//             refreshTokenRepository.deleteByUserId(userId);
+//             throw new IllegalStateException("refresh token expired");
+//         }
+//         return jwtTokenizer.createAccessToken(userId.toString());
+//     }
+// }
+    @Transactional(readOnly = true)
     public String refresh(String accessToken) {
-        Claims claims = jwtTokenizer.parseClaims(accessToken, true);
-        Byte userId = Byte.valueOf(claims.getSubject());
-        RefreshToken stored = refreshTokenRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalStateException("refresh token not found"));
-        if (stored.getExpiresAt().isBefore(LocalDateTime.now())) {
-            refreshTokenRepository.deleteByUserId(userId);
-            throw new IllegalStateException("refresh token expired");
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new IllegalArgumentException("AT 없음");
         }
-        return jwtTokenizer.createAccessToken(userId.toString());
+
+        Claims claims = jwtTokenizer.parseClaimsAllowExpired(accessToken);
+
+        Byte userId = Byte.valueOf(claims.getSubject());
+        String email = (String) claims.get("email");
+
+        boolean hasValidRt = refreshTokenRepository.existsByUserIdAndExpiresAtAfter(userId, Instant.now());
+        if (!hasValidRt) {
+            refreshTokenRepository.deleteAllByUserId(userId);
+            throw new IllegalArgumentException("유효한 RT 없음");
+        }
+        return jwtTokenizer.createAccessToken(userId, email);
     }
 }

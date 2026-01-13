@@ -5,8 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
-    Optional<RefreshToken> findByUserId(Byte userId);
+import java.time.Instant;
+
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Byte> {
+  
+  Optional<RefreshToken> findByUserId(Byte userId);
 
     void deleteByUserId(Byte userId);
+    boolean existsByUserIdAndExpiresAtAfter(Byte userId, Instant now);
+
+    void deleteAllByUserId(Byte userId);
 }

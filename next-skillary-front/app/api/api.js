@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL || 'http://localhost:8080/api';
 
 export default async function baseRequest(
     method = 'GET',
@@ -7,9 +7,9 @@ export default async function baseRequest(
     body = null,
     errMsg = '🛠️ 요청 처리 중 오류가 발생했습니다.',
     credentials = false,
-) {
-    // URL이 '/'로 시작하면 API_URL과 결합
-    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+) {     
+    const fullUrl = `${API_URL}${url}`;
+    console.log('fullUrl: ', fullUrl);
 
     try {
         const fetchOptions = {
@@ -44,15 +44,11 @@ export default async function baseRequest(
             throw new Error(specificMsg);
         }
 
-        if (response.status === 204)
-            return null;
-        if (fetchOptions.headers['Accept']?.startsWith('text/'))
-            return response;
-        else
-            return await response.json();
+        if (response.status === 204) return null;
+        if (fetchOptions.headers['Accept']?.startsWith('text/')) return response;
+        else return await response.json();
         
     } catch (e) {
-        console.error(`[API Error] ${fullUrl}:`, e.message);
-        throw e; 
+        console.log(`[API Error] ${fullUrl}:`, e.message);
     }
 }

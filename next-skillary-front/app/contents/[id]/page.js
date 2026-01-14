@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { popularContents } from '../../components/popularContentsData';
 import { creators } from '../../creators/components/data';
 
+
 export default function ContentDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
@@ -15,8 +16,17 @@ export default function ContentDetailPage({ params }) {
   const [currentUser] = useState('테크 인사이트'); // 임시 사용자
   const isOwner = content && content.author === currentUser;
 
+
   // 크리에이터 정보 찾기
   const creator = creators.find(c => c.name === content?.author);
+
+  const singleOrderHandler = async () => {
+    router.push(`/orders/single?contentId=${1}`); // test
+  }
+
+  const billingOrderHandler = async () => {
+    router.push(`/orders/plan?planId=${1}`); //test
+  }
 
   if (!content) {
     return (
@@ -99,17 +109,21 @@ export default function ContentDetailPage({ params }) {
             </button>
           )}
           {content.badgeType === 'price' && (
-            <button className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition">
-              구매하기 ({content.price})
+            <button 
+              onClick={singleOrderHandler}
+              className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+            >
+              구매하기 {content.price}
             </button>
           )}
           {content.badgeType === 'badge' && content.badge === '구독자 전용' && (
-            <Link 
-              href={`/orders?contentId=${content.id}`}
+            <button 
+              // href={`/orders?contentId=${content.id}`}
+              onClick={billingOrderHandler}
               className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition text-center block"
             >
               구독하기
-            </Link>
+            </button>
           )}
           {content.badge === '무료' && (
             <button className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition">

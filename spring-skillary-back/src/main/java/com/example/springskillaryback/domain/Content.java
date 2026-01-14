@@ -6,20 +6,26 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Table(name = "contents")
 @Builder
 @Entity
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Content {
@@ -43,6 +49,9 @@ public class Content {
 	@ManyToOne
 	@JoinColumn(name = "plan_id")
 	private SubscriptionPlan plan = null;
+
+	@Column
+	private Integer price;
 
 	@OneToOne
 	@JoinColumn(name = "post_id", nullable = false)

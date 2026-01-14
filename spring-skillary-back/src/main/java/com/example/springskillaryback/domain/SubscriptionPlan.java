@@ -2,9 +2,12 @@ package com.example.springskillaryback.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +32,9 @@ public class SubscriptionPlan {
 	private String name;
 
 	@Column(nullable = false)
+	private String description;
+
+	@Column(nullable = false)
 	private int price;
 
     @Builder.Default
@@ -36,4 +42,8 @@ public class SubscriptionPlan {
 
 	@CreationTimestamp
 	private LocalDateTime createdAt;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "creator_id")
+	private Creator creator;
 }

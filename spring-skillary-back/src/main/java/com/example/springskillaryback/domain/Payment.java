@@ -3,11 +3,14 @@ package com.example.springskillaryback.domain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,6 +39,10 @@ public class Payment {
 	@Column(nullable = false)
 	private int credit;
 
+	@JoinTable(name = "order_id")
+	@OneToOne
+	private Order order;
+
     @Builder.Default
 	@Enumerated(STRING)
     @Column(length = 20, nullable = false)
@@ -55,4 +62,8 @@ public class Payment {
 	@ManyToOne
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
+
+	public void cancel() {
+		this.creditStatus = CreditStatusEnum.CANCELED;
+	}
 }

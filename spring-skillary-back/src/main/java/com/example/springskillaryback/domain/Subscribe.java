@@ -30,10 +30,9 @@ public class Subscribe {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Byte subscribeId;
 
-    @Builder.Default
 	@Enumerated(STRING)
     @Column(length = 20, nullable = false)
-	private SubscribeStatusEnum subscribeStatus = SubscribeStatusEnum.INACTIVE;
+	private SubscribeStatusEnum subscribeStatus;
 
 	@CreationTimestamp
 	private LocalDateTime createdAt;
@@ -45,4 +44,14 @@ public class Subscribe {
 	@ManyToOne
 	@JoinColumn(name = "plan_id", nullable = false)
 	private SubscriptionPlan subscriptionPlan;
+
+	@ManyToOne
+	private User user;
+
+	public Subscribe(SubscriptionPlan subscriptionPlan, User user) {
+		this.subscriptionPlan = subscriptionPlan;
+		this.user = user;
+		this.subscribeStatus = SubscribeStatusEnum.ACTIVE;
+		this.startAt = LocalDateTime.now();
+	}
 }

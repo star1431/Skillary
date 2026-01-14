@@ -117,7 +117,7 @@ public class CommentServiceImpl implements CommentService {
 		}
 
 		// 대댓글이 있는지 확인
-		boolean hasChildren = !comment.getChildren().isEmpty();
+		boolean hasChildren = commentRepository.countByParentCommentId(commentId) > 0;
 		
 		if (hasChildren) {
 			// 대댓글이 있는 경우: soft

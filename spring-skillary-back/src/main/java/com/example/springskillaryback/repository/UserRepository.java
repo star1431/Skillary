@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, Byte> {
         where u.userId = :userId
     """)
     Optional<User> findByIdWithRoles(@Param("userId") Byte userId);
+    Optional<User> findByNickname(String nickname);
+    boolean existsByNickname(String nickname);
 }

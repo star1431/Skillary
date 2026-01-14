@@ -1,6 +1,34 @@
-const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL;
+// NOTE:
+// - 클라이언트 번들에서 NEXT_PUBLIC_* 환경변수는 "빌드/실행 시점에 주입"됩니다.
+// - 값이 비어있으면 fullUrl이 "undefined/..."가 되어 프론트(3000)로 잘못 요청이 나갈 수 있어
+//   로컬 개발 기본값을 둡니다.
+const DEFAULT_API_URL = 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL || DEFAULT_API_URL;
 
-export default async function baseRequest(
+let refreshInFlight = null;
+
+async function attemptRefresh() {
+    if (refreshInFlight) return refreshInFlight;
+
+    refreshInFlight = (async () => {
+        const refreshUrl = `${API_URL}/api/auth/refresh`;
+        const res = await fetch(refreshUrl, {
+            method: 'POST',
+            headers: { Accept: 'text/plain' },
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error('토큰 갱신에 실패했습니다.');
+        return true;
+    })();
+
+    try {
+        return await refreshInFlight;
+    } finally {
+        refreshInFlight = null;
+    }
+}
+
+export async function baseRequest(
     method = 'GET',
     headers = {},
     url,
@@ -28,11 +56,15 @@ export default async function baseRequest(
         let response = await fetch(fullUrl, fetchOptions);
 
         // 401 Unauthorized 처리
-        if (response.status === 401) {
+        const isRefreshEndpoint = fullUrl.includes('/api/auth/refresh');
+        if (response.status === 401 && credentials && !isRefreshEndpoint) {
             console.warn("토큰 만료 감지, 갱신 시도...");
-            // TODO: 여기서 실제 refresh API를 호출해야 합니다.
-            // await refresh();
-            response = await fetch(fullUrl, fetchOptions);
+            try {
+                await attemptRefresh();
+                response = await fetch(fullUrl, fetchOptions);
+            } catch (e) {
+                // refresh 실패면 그대로 401 처리로 내려가게 둠
+            }
         }
 
         if (!response.ok) {
@@ -56,3 +88,5 @@ export default async function baseRequest(
         throw e; 
     }
 }
+
+export default baseRequest;

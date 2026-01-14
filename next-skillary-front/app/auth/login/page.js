@@ -1,8 +1,33 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { login } from '../../api/auth';
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await login(email, password);
+      router.replace('/');
+    } catch (err) {
+      setError(err?.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleNaverLogin = () => {
     // TODO: Naver OAuth 로직 구현
     console.log('Naver 로그인');
@@ -34,7 +59,13 @@ export default function LoginPage() {
             </div>
 
             {/* 이메일 로그인 */}
-            <div className="space-y-4">
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <span className="block sm:inline">{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 이메일
@@ -42,8 +73,11 @@ export default function LoginPage() {
               <input
                 type="email"
                 id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="이메일을 입력하세요"
+                required
               />
             </div>
             <div>
@@ -53,14 +87,21 @@ export default function LoginPage() {
               <input
                 type="password"
                 id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="비밀번호를 입력하세요"
+                required
               />
             </div>
-            <button className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">
-              로그인
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {isLoading ? '로그인 중...' : '로그인'}
             </button>
-          </div>
+          </form>
 
           {/* 구분선 */}
           <div className="relative my-6">
@@ -115,7 +156,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               계정이 없으신가요?{' '}
-              <Link href="/auth/signup" className="text-black font-semibold hover:underline">
+              <Link href="/auth/register" className="text-black font-semibold hover:underline">
                 회원가입
               </Link>
             </p>

@@ -14,10 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.Optional;
-@Slf4j
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -39,14 +41,14 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalStateException("email already exists");
         }
+        Role roleUser = roleRepository.findByRole(RoleEnum.ROLE_USER);
+
         User user = User.builder()
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .nickname(nickname)
+                .roles(Set.of(roleUser))
                 .build();
-
-        Role role = roleRepository.findByRole(RoleEnum.ROLE_USER);
-        user.getRoles().add(role);
 
         userRepository.save(user);
 
@@ -92,6 +94,19 @@ public class AuthServiceImpl implements AuthService {
     public boolean verifyCode(String email, String code) {
         // EmailVerificationService에서 이미 verified_emails 저장을 처리함
         return emailVerificationService.verifyCode(email, code);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isNicknameAvailable(String nickname) {
+        if (!StringUtils.hasText(nickname)) {
+            throw new IllegalStateException("닉네임을 입력해주세요");
+        }
+        String trimmedNickname = nickname.trim();
+        if (!trimmedNickname.equals(nickname)) {
+            throw new IllegalStateException("닉네임 앞뒤에 공백을 사용할 수 없습니다");
+        }
+        return !userRepository.existsByNickname(trimmedNickname);
     }
 
     @Override

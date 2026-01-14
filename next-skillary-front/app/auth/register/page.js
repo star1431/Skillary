@@ -5,159 +5,196 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [verificationCodeInput, setVerificationCodeInput] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [isCodeSent, setIsCodeSent] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5분 = 300초
-  const [isVerified, setIsVerified] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+    const router = useRouter();
+    const [email, setEmail] = useState('');
+    const [verificationCodeInput, setVerificationCodeInput] = useState('');
+    const [password, setPassword] = useState('');
+    const [passwordConfirm, setPasswordConfirm] = useState('');
+    const [nickname, setNickname] = useState('');
+    const [isCodeSent, setIsCodeSent] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(300); // 5분 = 300초
+    const [isVerified, setIsVerified] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const passwordPattern = /^[A-Za-z0-9!@#$%^&*()_+\-=[\]{};:'",.<>/?`~|]+$/;
 
-  useEffect(() => {
-    if (isCodeSent && timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [isCodeSent, timeLeft]);
+    useEffect(() => {
+        if (isCodeSent && timeLeft > 0) {
+            const timer = setInterval(() => {
+                setTimeLeft((prev) => prev - 1);
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [isCodeSent, timeLeft]);
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
-  const handleSendCode = async () => {
-    setError('');
-    if (!email) {
-      setError('이메일을 입력해주세요.');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const response = await fetch('http://localhost:8080/api/auth/send-confirm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-      if (!response.ok) {
-        throw new Error('인증 코드 발송에 실패했습니다.');
-      }
-      setIsCodeSent(true);
-      setTimeLeft(300);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const handleSendCode = async () => {
+        setError('');
+        if (!email) {
+            setError('이메일을 입력해주세요.');
+            return;
+        }
+        // 이메일이 완전히 입력되었는지 확인 (.com까지 포함)
+        if (!emailPattern.test(email)) {
+            setError('이메일 주소를 끝까지 입력해주세요. (예: example@gmail.com)');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/send-confirm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({email}),
+            });
+            if (!response.ok) {
+                const errorMessage = response.headers.get('X-Error-Message');
+                throw new Error(errorMessage || '인증 코드 발송에 실패했습니다.');
+            }
+            setIsCodeSent(true);
+            setTimeLeft(300);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  const handleResendCode = async () => {
-    setError('');
-    setIsLoading(true);
-    try {
-      const response = await fetch('http://localhost:8080/api/auth/send-confirm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-      if (!response.ok) {
-        throw new Error('인증 코드 재발송에 실패했습니다.');
-      }
-      setTimeLeft(300);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const handleResendCode = async () => {
+        setError('');
+        // 이메일이 완전히 입력되었는지 확인 (.com까지 포함)
+        if (!emailPattern.test(email)) {
+            setError('이메일 주소를 끝까지 입력해주세요. (예: example@gmail.com)');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/send-confirm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({email}),
+            });
+            if (!response.ok) {
+                const errorMessage = response.headers.get('X-Error-Message');
+                throw new Error(errorMessage || '인증 코드 재발송에 실패했습니다.');
+            }
+            setTimeLeft(300);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  const handleVerifyCode = async () => {
-    setError('');
-    if (!verificationCodeInput) {
-      setError('인증 코드를 입력해주세요.');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const response = await fetch('http://localhost:8080/api/auth/send-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, code: verificationCodeInput }),
-      });
-      if (!response.ok) {
-        throw new Error('인증 코드가 올바르지 않습니다.');
-      }
-      setIsVerified(true);
-      setTimeLeft(0);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const handleVerifyCode = async () => {
+        setError('');
+        if (!verificationCodeInput) {
+            setError('인증 코드를 입력해주세요.');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({email, code: verificationCodeInput}),
+            });
+            if (!response.ok) {
+                throw new Error('인증 코드가 올바르지 않습니다.');
+            }
+            setIsVerified(true);
+            setTimeLeft(0);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  const handleNaverRegister = () => {
-    // TODO: Naver OAuth 회원가입 로직 구현
-    console.log('Naver 회원가입');
-  };
+    const handleNaverRegister = () => {
+        // TODO: Naver OAuth 회원가입 로직 구현
+        console.log('Naver 회원가입');
+    };
 
-  const handleGoogleRegister = () => {
-    // TODO: Google OAuth 회원가입 로직 구현
-    console.log('Google 회원가입');
-  };
+    const handleGoogleRegister = () => {
+        // TODO: Google OAuth 회원가입 로직 구현
+        console.log('Google 회원가입');
+    };
 
-  const handleKakaoRegister = () => {
-    // TODO: Kakao OAuth 회원가입 로직 구현
-    console.log('Kakao 회원가입');
-  };
+    const handleKakaoRegister = () => {
+        // TODO: Kakao OAuth 회원가입 로직 구현
+        console.log('Kakao 회원가입');
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (password !== passwordConfirm) {
-      setError('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    if (!isVerified) {
-      setError('이메일 인증을 완료해주세요.');
-      return;
-    }
-    if (!nickname) {
-      setError('닉네임을 입력해주세요.');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const response = await fetch('http://localhost:8080/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, nickname }),
-      });
-      if (!response.ok) {
-        throw new Error('회원가입에 실패했습니다.');
-      }
-      router.push('/auth/login');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        if (password !== passwordConfirm) {
+            setError('비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        if (!passwordPattern.test(password)) {
+            setError('비밀번호는 영문, 숫자, 특수문자만 사용할 수 있습니다.');
+            return;
+        }
+        if (!isVerified) {
+            setError('이메일 인증을 완료해주세요.');
+            return;
+        }
+        if (!nickname || nickname.trim().length === 0) {
+            setError('닉네임을 입력해주세요.');
+            return;
+        }
+        // 닉네임 앞뒤 공백 체크
+        if (nickname !== nickname.trim()) {
+            setError('닉네임 앞뒤에 공백을 사용할 수 없습니다.');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const nicknameCheckResponse = await fetch(
+                `http://localhost:8080/api/auth/check-nickname?nickname=${encodeURIComponent(nickname)}`,
+            );
+            if (!nicknameCheckResponse.ok) {
+                const errorMessage = nicknameCheckResponse.headers.get('X-Error-Message');
+                throw new Error(errorMessage || '닉네임 중복 확인에 실패했습니다.');
+            }
+            const nicknameCheckData = await nicknameCheckResponse.json();
+            if (!nicknameCheckData.available) {
+                setError('이미 사용 중인 닉네임입니다.');
+                return;
+            }
+            const response = await fetch('http://localhost:8080/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({email, password, nickname}),
+            });
+            if (!response.ok) {
+                const errorMessage = response.headers.get('X-Error-Message');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorMessage || errorData.message || '회원가입에 실패했습니다.');
+            }
+            router.push('/auth/login');
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
@@ -273,7 +310,19 @@ export default function RegisterPage() {
                 type="text"
                 id="nickname"
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // 앞뒤 공백 제거 (실시간)
+                  if (value !== value.trim() && value.trim().length > 0) {
+                    setNickname(value.trim());
+                  } else {
+                    setNickname(value);
+                  }
+                }}
+                onBlur={(e) => {
+                  // 포커스 해제 시 앞뒤 공백 제거
+                  setNickname(e.target.value.trim());
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="닉네임을 입력하세요"
                 required

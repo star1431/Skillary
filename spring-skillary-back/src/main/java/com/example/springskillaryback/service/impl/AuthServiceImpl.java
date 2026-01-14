@@ -33,29 +33,15 @@ public class AuthServiceImpl implements AuthService {
     public void register(String email, String password, String nickname) {
         Optional<VerifiedEmail> verifiedEmail = verifiedEmailRepository.findByEmail(email);
         if (verifiedEmail.isEmpty()) {
-            throw new IllegalStateException("이메일 인증을 완료해주세요");
+            throw new IllegalStateException("email not verified");
         }
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalStateException("이미 사용 중인 이메일입니다");
-        }
-        
-        // 닉네임 앞뒤 공백 제거 및 검증
-        String trimmedNickname = nickname.trim();
-        if (!trimmedNickname.equals(nickname)) {
-            throw new IllegalStateException("닉네임 앞뒤에 공백을 사용할 수 없습니다");
-        }
-        if (trimmedNickname.isEmpty()) {
-            throw new IllegalStateException("닉네임을 입력해주세요");
-        }
-        
-        // 닉네임 중복 체크
-        if (userRepository.findByNickname(trimmedNickname).isPresent()) {
-            throw new IllegalStateException("이미 사용 중인 닉네임입니다");
+            throw new IllegalStateException("email already exists");
         }
         User user = User.builder()
                 .email(email)
                 .password(passwordEncoder.encode(password))
-                .nickname(trimmedNickname)
+                .nickname(nickname)
                 .build();
 
         Role role = roleRepository.findByRole(RoleEnum.ROLE_USER);
@@ -98,9 +84,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendCode(String email) {
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalStateException("이미 사용 중인 이메일입니다");
-        }
         emailVerificationService.sendVerificationCode(email);
     }
 

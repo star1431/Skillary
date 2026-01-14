@@ -27,12 +27,10 @@ public class AuthController {
 
     @PostMapping("/register")
      public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) { // 회원 가입
-        try {
-            authService.register(request.email(), request.password(), request.nickname()); // 회원 가입 서비스 호출
-            return ResponseEntity.status(201).build();
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().header("X-Error-Message", e.getMessage()).build();
-        }
+        authService.register(request.email(), request.password(), request.nickname()); // 회원 가입 서비스 호출
+
+        return ResponseEntity.status(201).build();
+
     }
 
      @PostMapping("/send-confirm")
@@ -40,8 +38,6 @@ public class AuthController {
          try {
              authService.sendCode(request.email());
              return ResponseEntity.status(201).build(); // 201 상태 코드 반환
-         } catch (IllegalStateException e) {
-             return ResponseEntity.badRequest().header("X-Error-Message", e.getMessage()).build();
          } catch (Exception exception) {
              exception.printStackTrace(); // 에러 로깅
              System.err.println("❌ 인증코드 발송 실패: " + exception.getMessage());

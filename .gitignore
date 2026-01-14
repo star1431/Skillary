@@ -59,9 +59,5 @@ docker-compose.override.yml
 # 압축 파일 (필요시)
 *.zip
 *.tar.gz
-*.rar
-*.pem
-
-# 실행 관련 문서 및 스크립트
-실행방법.md
-실행하기.sh
+*.rar*.pem
+.idea/

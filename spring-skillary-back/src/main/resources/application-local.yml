@@ -8,22 +8,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: false
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${SPRING_MAIL_USERNAME:your-email@gmail.com}
-    password: ${SPRING_MAIL_PASSWORD:your-app-password}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
 
   jwt:
     secret: "this-is-very-secret-key-for-jwt-signing-please-change-it"
@@ -31,18 +15,6 @@ spring:
     expire-time:
       access: 1800
       refresh: 604800
-
-app:
-  mail:
-    from: ${APP_MAIL_FROM:your-email@gmail.com}
-    subject: ${APP_MAIL_SUBJECT:Skillary 이메일 인증}
-    code-expiry-minutes: ${APP_MAIL_CODE_EXPIRY_MINUTES:5}
-
-  jwt:
-    secret: ${JWT_SECRET_KEY:this-is-very-secret-key-for-jwt-signing-please-change-it}
-    expire-time:
-      access: ${JWT_EXPIRE_TIME_ACCESS:1800}
-      refresh: ${JWT_EXPIRE_TIME_REFRESH:604800}
 
 #  JWT_ACCESS_SECRET_KEY=${{ secrets.JWT_ACCESS_SECRET_KEY }}
 #  JWT_REFRESH_SECRET_KEY=${{ secrets.JWT_REFRESH_SECRET_KEY }}

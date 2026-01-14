@@ -1,6 +1,16 @@
 package com.example.springskillaryback.repository;
 
-import com.example.springskillaryback.domain.Creator;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CreatorRepository extends JpaRepository<Creator, Byte> { }
+import com.example.springskillaryback.domain.Creator;
+import com.example.springskillaryback.domain.User;
+
+public interface CreatorRepository extends JpaRepository<Creator, Byte> {
+	Optional<Creator> findByUser(User user);
+	
+	/** 여러 User ID로 Creator 조회 */
+	List<Creator> findByUser_UserIdIn(List<Byte> userIds);
+}

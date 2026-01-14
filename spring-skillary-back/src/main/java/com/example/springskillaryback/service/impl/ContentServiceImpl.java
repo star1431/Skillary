@@ -3,6 +3,7 @@ package com.example.springskillaryback.service.impl;
 import com.example.springskillaryback.common.dto.ContentListResponseDto;
 import com.example.springskillaryback.common.dto.ContentRequestDto;
 import com.example.springskillaryback.common.dto.ContentResponseDto;
+import com.example.springskillaryback.common.dto.PostResponseDto;
 import com.example.springskillaryback.domain.CategoryEnum;
 import com.example.springskillaryback.domain.Content;
 import com.example.springskillaryback.domain.Creator;
@@ -75,7 +76,7 @@ public class ContentServiceImpl implements ContentService {
 			savedContent.setPost(post);
 		}
 
-		return ContentResponseDto.from(savedContent);
+		return toDto(savedContent);
 	}
 
 	/** 콘텐츠 수정 */
@@ -130,7 +131,7 @@ public class ContentServiceImpl implements ContentService {
 		}
 
 		Content savedContent = contentRepository.save(content);
-		return ContentResponseDto.from(savedContent);
+		return toDto(savedContent);
 	}
 
 	/** 콘텐츠 전체 목록 조회 */
@@ -139,7 +140,7 @@ public class ContentServiceImpl implements ContentService {
 	public Slice<ContentListResponseDto> getContents(int page, int size) {
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 		Slice<Content> contents = contentRepository.findAllForList(pageable);
-		return contents.map(ContentListResponseDto::from);
+		return contents.map(this::toListDto);
 	}
 
 	/** 인기 콘텐츠 목록 조회 (조회순 기준) */
@@ -148,7 +149,7 @@ public class ContentServiceImpl implements ContentService {
 	public Slice<ContentListResponseDto> getPopularContents(int page, int size) {
 		Pageable pageable = PageRequest.of(page, size);
 		Slice<Content> contents = contentRepository.findPopularForList(pageable);
-		return contents.map(ContentListResponseDto::from);
+		return contents.map(this::toListDto);
 	}
 
 	/** 크리에이터 기준 목록 조회 */
@@ -157,7 +158,7 @@ public class ContentServiceImpl implements ContentService {
 	public Slice<ContentListResponseDto> getContentsByCreator(Byte creatorId, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 		Slice<Content> contents = contentRepository.findByCreatorIdForList(creatorId, pageable);
-		return contents.map(ContentListResponseDto::from);
+		return contents.map(this::toListDto);
 	}
 
 	/** 카테고리 기준 목록 조회 */
@@ -166,7 +167,7 @@ public class ContentServiceImpl implements ContentService {
 	public Slice<ContentListResponseDto> getContentsByCategory(CategoryEnum category, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 		Slice<Content> contents = contentRepository.findByCategoryForList(category, pageable);
-		return contents.map(ContentListResponseDto::from);
+		return contents.map(this::toListDto);
 	}
 
 	/** 콘텐츠 상세 조회 (포스트, 댓글 포함) */
@@ -180,7 +181,7 @@ public class ContentServiceImpl implements ContentService {
 		content.setViewCount(content.getViewCount() + 1);
 		contentRepository.save(content);
 		
-		return ContentResponseDto.from(content);
+		return toDto(content);
 	}
 
 	/** 콘텐츠 삭제 */
@@ -282,6 +283,59 @@ public class ContentServiceImpl implements ContentService {
 		if (hasPrice && price <= 0) {
 			throw new IllegalArgumentException("단건 가격 0원보다 높아야 함");
 		}
+	}
+
+	/** dto 변환 */
+	private ContentResponseDto toDto(Content content) {
+		Creator creator = content.getCreator();
+		Post post = content.getPost();
+		
+		PostResponseDto postDto = null;
+		if (post != null) {
+			List<String> postFiles = post.getFileList().stream()
+				.map(PostFile::getUrl)
+				.toList();
+			postDto = new PostResponseDto(
+				post.getPostId(),
+				post.getBody(),
+				postFiles
+			);
+		}
+		
+		return new ContentResponseDto(
+			content.getContentId(),
+			content.getTitle(),
+			content.getDescription(),
+			content.getCategory(),
+			creator.getCreatorId(),
+			content.getPlan() != null ? content.getPlan().getPlanId() : null,
+			content.getPrice(),
+			content.getThumbnailUrl(),
+			content.getCreatedAt(),
+			content.getUpdatedAt(),
+			content.getViewCount() != null ? content.getViewCount() : 0,
+			postDto
+		);
+	}
+
+	/** 리스트dto 변환 */
+	private ContentListResponseDto toListDto(Content content) {
+		Creator creator = content.getCreator();
+		
+		return new ContentListResponseDto(
+			content.getContentId(),
+			content.getTitle(),
+			content.getDescription(),
+			content.getCategory(),
+			creator.getCreatorId(),
+			creator.getDisplayName(),
+			content.getPlan() != null ? content.getPlan().getPlanId() : null,
+			content.getPrice(),
+			content.getThumbnailUrl(),
+			content.getCreatedAt(),
+			content.getUpdatedAt(),
+			content.getViewCount() != null ? content.getViewCount() : 0
+		);
 	}
 }
 

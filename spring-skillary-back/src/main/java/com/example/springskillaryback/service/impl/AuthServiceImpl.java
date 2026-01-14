@@ -10,13 +10,14 @@ import com.example.springskillaryback.service.AuthService;
 import com.example.springskillaryback.service.EmailVerificationService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -59,8 +60,8 @@ public class AuthServiceImpl implements AuthService {
     public String login(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일이 없음"));
-
         if (!passwordEncoder.matches(password, user.getPassword())) {
+            log.error(passwordEncoder.encode(password), passwordEncoder.encode(user.getPassword()));
             throw new IllegalArgumentException("비밀번호가 맞지 않음");
         }
 

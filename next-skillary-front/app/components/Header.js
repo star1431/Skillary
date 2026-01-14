@@ -3,10 +3,14 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import Alert from './Alert';
+import { refresh, logout as apiLogout } from '../api/auth';
 
 export default function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  // 요구사항: 비로그인 상태라면 로그인/회원가입만 보여야 함
+  // → 초기값을 false(비로그인)로 두고, refresh 성공 시에만 true로 전환
+  const [isAuthed, setIsAuthed] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -25,22 +29,29 @@ export default function Header() {
     };
   }, [isDropdownOpen]);
 
+  useEffect(() => {
+    // httpOnly 쿠키라 FE에서 직접 확인 불가 → refresh로 로그인 여부 판별(201=로그인, 401=비로그인)
+    const check = async () => {
+      try {
+        await refresh();
+        setIsAuthed(true);
+      } catch (e) {
+        setIsAuthed(false);
+      }
+    };
+    check();
+  }, []);
+
   const handleToggleDropdown = () => {
-    // TODO: 드롭다운 토글 로직 구현
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleLogin = () => {
-    // TODO: 로그인 로직 구현
-  };
-
-  const handleSignup = () => {
-    // TODO: 회원가입 로직 구현
-  };
-
-  const handleLogout = () => {
-    // TODO: 로그아웃 로직 구현
-    console.log('로그아웃');
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+    } finally {
+      setIsAuthed(false);
+    }
   };
 
   const handleToggleAlert = () => {
@@ -103,34 +114,43 @@ export default function Header() {
                 </button>
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <Link
-                      href="/auth/login"
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      로그인
-                    </Link>
-                    <Link
-                      href="/auth/register"
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      회원가입
-                    </Link>
-                    <div className="border-t border-gray-200 my-1"></div>
-                    <Link
-                      href="/auth/my-page"
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      마이페이지
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      로그아웃
-                    </button>
+                    {isAuthed ? (
+                      <>
+                        <Link
+                          href="/auth/my-page"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          마이페이지
+                        </Link>
+                        <button
+                          onClick={async () => {
+                            await handleLogout();
+                            setIsDropdownOpen(false);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                        >
+                          로그아웃
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/auth/login"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          로그인
+                        </Link>
+                        <Link
+                          href="/auth/register"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          회원가입
+                        </Link>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

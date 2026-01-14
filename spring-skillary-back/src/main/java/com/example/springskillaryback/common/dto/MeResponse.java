@@ -1,4 +1,12 @@
 package com.example.springskillaryback.common.dto;
 
-public class MeResponse {
-}
+import com.example.springskillaryback.domain.Role;
+
+import java.util.Set;
+
+public record MeResponse (
+        Byte userId,
+        String email,
+        String nickname,
+        Set<Role> roles
+){}

@@ -9,6 +9,8 @@ public interface AuthService {
 
 	boolean verifyCode(String email, String code);
 
+    boolean isNicknameAvailable(String nickname);
+
 	void logout(String refreshToken);
 
 	boolean withdrawal(String refreshToken);

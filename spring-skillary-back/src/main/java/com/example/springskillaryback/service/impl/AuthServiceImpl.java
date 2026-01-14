@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -91,6 +92,19 @@ public class AuthServiceImpl implements AuthService {
     public boolean verifyCode(String email, String code) {
         // EmailVerificationService에서 이미 verified_emails 저장을 처리함
         return emailVerificationService.verifyCode(email, code);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isNicknameAvailable(String nickname) {
+        if (!StringUtils.hasText(nickname)) {
+            throw new IllegalStateException("닉네임을 입력해주세요");
+        }
+        String trimmedNickname = nickname.trim();
+        if (!trimmedNickname.equals(nickname)) {
+            throw new IllegalStateException("닉네임 앞뒤에 공백을 사용할 수 없습니다");
+        }
+        return !userRepository.existsByNickname(trimmedNickname);
     }
 
     @Override

@@ -82,7 +82,7 @@ public class ContentServiceImpl implements ContentService {
 			savedContent.setPost(post);
 		}
 
-		return toDto(savedContent);
+		return toDto(savedContent, false);
 	}
 
 	/** 콘텐츠 수정 */
@@ -137,7 +137,7 @@ public class ContentServiceImpl implements ContentService {
 		}
 
 		Content savedContent = contentRepository.save(content);
-		return toDto(savedContent);
+		return toDto(savedContent, false);
 	}
 
 	/** 콘텐츠 전체 목록 조회 */
@@ -179,7 +179,7 @@ public class ContentServiceImpl implements ContentService {
 	/** 콘텐츠 상세 조회 (포스트, 댓글 포함) */
 	@Override
 	@Transactional // 콘텐츠 상세 조회할때 카운트로 쓰기로 변경
-	public ContentResponseDto getContent(Byte contentId) {
+	public ContentResponseDto getContent(Byte contentId, Byte creatorId) {
 		Content content = contentRepository.findByIdForDetail(contentId)
 			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
 		
@@ -187,7 +187,13 @@ public class ContentServiceImpl implements ContentService {
 		content.setViewCount(content.getViewCount() + 1);
 		contentRepository.save(content);
 		
-		return toDto(content);
+		// 현재 사용자가 콘텐츠 소유자인지 확인
+		boolean isOwner = false;
+        if(creatorId != null && content.getCreator().getCreatorId().equals(creatorId)) {
+            isOwner = true;
+        }
+		
+		return toDto(content, isOwner);
 	}
 
 	/** 콘텐츠 삭제 */
@@ -292,7 +298,7 @@ public class ContentServiceImpl implements ContentService {
 	}
 
 	/** dto 변환 */
-	private ContentResponseDto toDto(Content content) {
+	private ContentResponseDto toDto(Content content, Boolean isOwner) {
 		Creator creator = content.getCreator();
 		Post post = content.getPost();
 		
@@ -314,13 +320,15 @@ public class ContentServiceImpl implements ContentService {
 			content.getDescription(),
 			content.getCategory(),
 			creator.getCreatorId(),
+			creator.getDisplayName(),
 			content.getPlan() != null ? content.getPlan().getPlanId() : null,
 			content.getPrice(),
 			content.getThumbnailUrl(),
 			content.getCreatedAt(),
 			content.getUpdatedAt(),
 			content.getViewCount(),
-			postDto
+			postDto,
+			isOwner
 		);
 	}
 

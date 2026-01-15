@@ -3,18 +3,27 @@ import Link from 'next/link';
 // 카테고리별 배너 설정
 const getCategoryBanner = (category) => {
   const categoryBanners = {
-    'EXERCISE': { emoji: '💪', gradientFrom: 'from-orange-400', gradientTo: 'to-red-500' },
-    'SPORTS': { emoji: '⚽', gradientFrom: 'from-green-400', gradientTo: 'to-blue-500' },
-    'COOKING': { emoji: '🍳', gradientFrom: 'from-yellow-400', gradientTo: 'to-orange-500' },
-    'STUDY': { emoji: '📚', gradientFrom: 'from-blue-400', gradientTo: 'to-purple-500' },
-    'ART': { emoji: '🎨', gradientFrom: 'from-pink-400', gradientTo: 'to-purple-500' },
-    'MUSIC': { emoji: '🎵', gradientFrom: 'from-purple-400', gradientTo: 'to-pink-500' },
-    'PHOTO_VIDEO': { emoji: '📷', gradientFrom: 'from-gray-400', gradientTo: 'to-gray-600' },
-    'IT': { emoji: '💻', gradientFrom: 'from-blue-400', gradientTo: 'to-cyan-500' },
-    'GAME': { emoji: '🎮', gradientFrom: 'from-indigo-400', gradientTo: 'to-purple-500' },
-    'ETC': { emoji: '📦', gradientFrom: 'from-gray-400', gradientTo: 'to-gray-500' }
+    'EXERCISE': { emoji: '💪', gradientFrom: 'from-red-300', gradientTo: 'to-orange-400' },
+    'SPORTS': { emoji: '⚽', gradientFrom: 'from-emerald-300', gradientTo: 'to-teal-400' },
+    'COOKING': { emoji: '🍳', gradientFrom: 'from-amber-300', gradientTo: 'to-yellow-400' },
+    'STUDY': { emoji: '📚', gradientFrom: 'from-blue-300', gradientTo: 'to-indigo-400' },
+    'ART': { emoji: '🎨', gradientFrom: 'from-rose-300', gradientTo: 'to-pink-400' },
+    'MUSIC': { emoji: '🎵', gradientFrom: 'from-violet-300', gradientTo: 'to-purple-400' },
+    'PHOTO_VIDEO': { emoji: '📷', gradientFrom: 'from-slate-300', gradientTo: 'to-gray-400' },
+    'IT': { emoji: '💻', gradientFrom: 'from-cyan-300', gradientTo: 'to-blue-400' },
+    'GAME': { emoji: '🎮', gradientFrom: 'from-fuchsia-300', gradientTo: 'to-purple-400' },
+    'ETC': { emoji: '📦', gradientFrom: 'from-neutral-300', gradientTo: 'to-gray-400' }
   };
-  return categoryBanners[category] || { emoji: '📚', gradientFrom: 'from-blue-400', gradientTo: 'to-purple-500' };
+  return categoryBanners[category] || { emoji: '📚', gradientFrom: 'from-blue-300', gradientTo: 'to-indigo-400' };
+};
+
+// 숫자 포맷팅 (k 단위, 소수점 2자리까지)
+const formatCount = (count) => {
+  if (!count || count === 0) return '0';
+  if (count < 1000) return count.toString();
+  const kValue = count / 1000;
+  // 소수점 2자리까지 표시, 끝의 0 제거
+  return kValue.toFixed(2).replace(/\.?0+$/, '') + 'k';
 };
 
 export default function PopularCard({ 
@@ -31,11 +40,12 @@ export default function PopularCard({
   gradientTo,
   thumbnailUrl,
   category,
-  viewCount
+  viewCount,
+  likeCount
 }) {
   // 썸네일이 있으면 썸네일, 없으면 카테고리별 배너
   const hasThumbnail = thumbnailUrl && thumbnailUrl.trim() !== '';
-  const bannerInfo = category ? getCategoryBanner(category) : { emoji: emoji || '📚', gradientFrom: gradientFrom || 'from-blue-400', gradientTo: gradientTo || 'to-purple-500' };
+  const bannerInfo = category ? getCategoryBanner(category) : { emoji: emoji || '📚', gradientFrom: gradientFrom || 'from-blue-600', gradientTo: gradientTo || 'to-indigo-700' };
   
   return (
     <Link href={`/contents/${id}`} className="block h-full">
@@ -103,7 +113,14 @@ export default function PopularCard({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
-              <span>{viewCount || 0}</span>
+              <span>{formatCount(viewCount || 0)}</span>
+            </div>
+            <span className="text-gray-300">|</span>
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span>{formatCount(likeCount || 0)}</span>
             </div>
           </div>
         </div>

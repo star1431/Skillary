@@ -24,7 +24,7 @@ public interface ContentService {
 	Slice<ContentListResponseDto> getContentsByCategory(CategoryEnum category, int page, int size);
 	
 	/** 콘텐츠 상세 조회 (포스트, 댓글 포함) */
-	ContentResponseDto getContent(Byte contentId);
+	ContentResponseDto getContent(Byte contentId, Byte creatorId);
 	
 	void deleteContent(Byte contentId, Byte creatorId);
 	

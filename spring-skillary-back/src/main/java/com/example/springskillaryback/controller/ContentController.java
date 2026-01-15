@@ -104,8 +104,12 @@ public class ContentController {
 
 	/** 콘텐츠 상세 조회 (포스트, 댓글 포함) */
 	@GetMapping("/{contentId}")
-	public ResponseEntity<ContentResponseDto> getContent(@PathVariable Byte contentId) {
-		ContentResponseDto content = contentService.getContent(contentId);
+	public ResponseEntity<ContentResponseDto> getContent(
+            @PathVariable Byte contentId,
+            HttpServletRequest request
+    ) {
+		Byte creatorId = tokenUtil.getCreatorIdFromToken(request);
+		ContentResponseDto content = contentService.getContent(contentId, creatorId);
 		return ResponseEntity.ok(content); // 200
 	}
 

@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import PopularCard from '../components/PopularCard';
-import { getContents, getCategories, getContentsByCategory } from '../api/contents';
-import { popularContents } from '../components/popularContentsData';
+import { getContents, getCategories, getContentsByCategory, getPopularContents } from '../api/contents';
 
 export default function ContentsPage() {
   const [contents, setContents] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedType, setSelectedType] = useState('all'); // 'all', 'free', 'subscription', 'paid'
+  const [sortBy, setSortBy] = useState('latest'); // 'latest', 'popular'
   const [page, setPage] = useState(0);
   const [size] = useState(10);
   const [hasNext, setHasNext] = useState(false);
@@ -36,9 +36,15 @@ export default function ContentsPage() {
       setError(null);
       try {
         let data;
+        // 정렬 기준에 따라 API 선택
         if (selectedCategory) {
+          // 카테고리별 조회 (카테고리는 항상 최신순)
           data = await getContentsByCategory(selectedCategory, page, size);
+        } else if (sortBy === 'popular') {
+          // 인기별 조회
+          data = await getPopularContents(page, size);
         } else {
+          // 최신순 조회
           data = await getContents(page, size);
         }
         
@@ -54,36 +60,19 @@ export default function ContentsPage() {
           filteredContents = filteredContents.filter(c => c.price);
         }
         
-        // 실제 데이터가 있으면 실제 데이터 사용, 없으면 목업 데이터 사용
-        if (filteredContents.length > 0) {
-          setContents(filteredContents);
-          setHasNext(data.hasNext || false);
-        } else {
-          // 목업 데이터를 실제 데이터 형식으로 변환
-          const mockData = popularContents.map(content => ({
-            contentId: content.id,
-            title: content.title,
-            description: content.description,
-            creatorName: content.author,
-            createdAt: new Date().toISOString(),
-            thumbnailUrl: null,
-            category: content.category || 'ETC',
-            planId: content.badgeType === 'badge' && content.badge === '구독자 전용' ? 1 : null,
-            price: content.badgeType === 'price' ? parseInt(content.price?.replace(/[^0-9]/g, '') || '0') : null,
-            viewCount: 0
-          }));
-          setContents(mockData);
-          setHasNext(false);
-        }
+        setContents(filteredContents);
+        setHasNext(data.hasNext || false);
       } catch (err) {
         console.error('콘텐츠 로드 실패:', err);
-        setError(err.message);
+        setError('콘텐츠를 불러오는 중 오류가 발생했습니다.');
+        setContents([]);
+        setHasNext(false);
       } finally {
         setLoading(false);
       }
     }
     loadContents();
-  }, [page, size, selectedCategory, selectedType]);
+  }, [page, size, selectedCategory, selectedType, sortBy]);
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value === 'ALL' ? null : e.target.value);
@@ -93,6 +82,11 @@ export default function ContentsPage() {
   const handleTypeClick = (type) => {
     setSelectedType(type);
     setPage(0); // 타입 변경 시 첫 페이지로
+  };
+
+  const handleSortChange = (sort) => {
+    setSortBy(sort);
+    setPage(0); // 정렬 변경 시 첫 페이지로
   };
 
   const handlePrevPage = () => {
@@ -143,17 +137,17 @@ export default function ContentsPage() {
           <p className="text-gray-600">다양한 전문가들의 지식과 노하우를 만나보세요</p>
         </div>
 
-        {/* 필터 섹션 */}
-        <div className="mb-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* 타입 탭 버튼 */}
-            <div className="flex gap-2">
+        {/* 필터 및 정렬 섹션 */}
+        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
+            {/* 타입 필터 */}
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => handleTypeClick('all')}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                   selectedType === 'all'
                     ? 'bg-black text-white'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 전체
@@ -163,7 +157,7 @@ export default function ContentsPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                   selectedType === 'free'
                     ? 'bg-black text-white'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 무료
@@ -173,7 +167,7 @@ export default function ContentsPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                   selectedType === 'subscription'
                     ? 'bg-black text-white'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 구독자 전용
@@ -183,31 +177,60 @@ export default function ContentsPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                   selectedType === 'paid'
                     ? 'bg-black text-white'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 유료
               </button>
             </div>
 
-            {/* 카테고리 셀렉트 */}
-            <div className="relative">
-              <select
-                value={selectedCategory || 'ALL'}
-                onChange={handleCategoryChange}
-                className="px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white text-sm font-semibold"
-              >
-                <option value="ALL">카테고리 전체</option>
-                {categories.map((category) => (
-                  <option key={category.code} value={category.code}>
-                    {category.label}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+            {/* 정렬 옵션 및 카테고리 필터 */}
+            <div className="flex items-center gap-4 ml-auto">
+              {/* 정렬 옵션 (카테고리 선택 시에는 숨김) */}
+              {!selectedCategory && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSortChange('latest')}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                      sortBy === 'latest'
+                        ? 'bg-black text-white'
+                        : 'bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    최신순
+                  </button>
+                  <button
+                    onClick={() => handleSortChange('popular')}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                      sortBy === 'popular'
+                        ? 'bg-black text-white'
+                        : 'bg-gray-50 border border-gray-300 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    인기순
+                  </button>
+                </div>
+              )}
+
+              {/* 카테고리 필터 */}
+              <div className="relative">
+                <select
+                  value={selectedCategory || 'ALL'}
+                  onChange={handleCategoryChange}
+                  className="px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white text-sm font-semibold min-w-[160px]"
+                >
+                  <option value="ALL">카테고리 전체</option>
+                  {categories.map((category) => (
+                    <option key={category.code} value={category.code}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -222,9 +245,16 @@ export default function ContentsPage() {
         )}
 
         {/* 에러 상태 */}
-        {error && (
+        {!loading && error && (
           <div className="text-center py-12">
-            <p className="text-red-600">오류: {error}</p>
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+        {/* 콘텐츠가 없을 때 */}
+        {!loading && !error && contents.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-600">콘텐츠가 없습니다.</p>
           </div>
         )}
 
@@ -247,6 +277,7 @@ export default function ContentsPage() {
                   thumbnailUrl={content.thumbnailUrl}
                   category={content.category}
                   viewCount={content.viewCount || 0}
+                  likeCount={content.likeCount || 0}
                 />
               );
             })}
@@ -254,7 +285,7 @@ export default function ContentsPage() {
         )}
 
         {/* 페이지네이션 */}
-        {!loading && !error && contents.length > 0 && (
+        {!loading && contents.length > 0 && (
         <div className="mt-12 flex justify-center gap-2">
             <button
               onClick={handlePrevPage}

@@ -151,6 +151,22 @@ export async function deleteContent(contentId) {
 }
 
 /**
+ * 콘텐츠 좋아요 토글
+ * @param {number} contentId - 콘텐츠 ID
+ * @returns {Promise} null (204 No Content)
+ */
+export async function toggleContentLike(contentId) {
+  return await baseRequest(
+    'POST',
+    {},
+    `/contents/${contentId}/like`,
+    null,
+    '좋아요 처리 중 오류가 발생했습니다.',
+    true // credentials: include (쿠키 전송)
+  );
+}
+
+/**
  * [TODO] 크리에이터의 구독 플랜 목록 조회
  * 플랜 담당자가 API 작업 완료 후 사용할 수 있습니다.
  * @param {number} creatorId - 크리에이터 ID

@@ -9,13 +9,15 @@ public record ContentResponseDto(
         String description,
 		CategoryEnum category,
 		Byte creatorId,
+		String creatorName,
 		Byte planId,
 		Integer price,
 		String thumbnailUrl,
 		LocalDateTime createdAt,
 		LocalDateTime updatedAt,
 		Integer viewCount,
-		PostResponseDto post
+		PostResponseDto post,
+		Boolean isOwner  // 콘텐츠 소유자 여부 추가
 ) {
 }
 

@@ -3,27 +3,37 @@
 import Link from 'next/link';
 import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getContent, deleteContent } from '../../api/contents';
-import { getComments, addComment, updateComment, deleteComment, toggleLike } from '../../api/comments';
+import { getContent, deleteContent, toggleContentLike } from '../../api/contents';
 import { popularContents } from '../../components/popularContentsData';
-import Viewer from '@toast-ui/editor/dist/toastui-editor-viewer';
-import '@toast-ui/editor/dist/toastui-editor-viewer.css';
+import { getComments, addComment, updateComment, deleteComment, toggleLike } from '../../api/comments';
+import { creators } from '../../creators/components/data';
+import { getCurrentUser } from '../../api/auth';
+// ToastUI Viewer는 클라이언트 사이드에서만 동적 import로 로드
+
+// 숫자 포맷팅 (k 단위, 소수점 2자리까지)
+const formatCount = (count) => {
+  if (!count || count === 0) return '0';
+  if (count < 1000) return count.toString();
+  const kValue = count / 1000;
+  // 소수점 2자리까지 표시, 끝의 0 제거
+  return kValue.toFixed(2).replace(/\.?0+$/, '') + 'k';
+};
 
 // 카테고리별 배너 설정
 const getCategoryBanner = (category) => {
   const categoryBanners = {
-    'EXERCISE': { emoji: '💪', gradientFrom: 'from-orange-400', gradientTo: 'to-red-500' },
-    'SPORTS': { emoji: '⚽', gradientFrom: 'from-green-400', gradientTo: 'to-blue-500' },
-    'COOKING': { emoji: '🍳', gradientFrom: 'from-yellow-400', gradientTo: 'to-orange-500' },
-    'STUDY': { emoji: '📚', gradientFrom: 'from-blue-400', gradientTo: 'to-purple-500' },
-    'ART': { emoji: '🎨', gradientFrom: 'from-pink-400', gradientTo: 'to-purple-500' },
-    'MUSIC': { emoji: '🎵', gradientFrom: 'from-purple-400', gradientTo: 'to-pink-500' },
-    'PHOTO_VIDEO': { emoji: '📷', gradientFrom: 'from-gray-400', gradientTo: 'to-gray-600' },
-    'IT': { emoji: '💻', gradientFrom: 'from-blue-400', gradientTo: 'to-cyan-500' },
-    'GAME': { emoji: '🎮', gradientFrom: 'from-indigo-400', gradientTo: 'to-purple-500' },
-    'ETC': { emoji: '📦', gradientFrom: 'from-gray-400', gradientTo: 'to-gray-500' }
+    'EXERCISE': { emoji: '💪', gradientFrom: 'from-red-300', gradientTo: 'to-orange-400' },
+    'SPORTS': { emoji: '⚽', gradientFrom: 'from-emerald-300', gradientTo: 'to-teal-400' },
+    'COOKING': { emoji: '🍳', gradientFrom: 'from-amber-300', gradientTo: 'to-yellow-400' },
+    'STUDY': { emoji: '📚', gradientFrom: 'from-blue-300', gradientTo: 'to-indigo-400' },
+    'ART': { emoji: '🎨', gradientFrom: 'from-rose-300', gradientTo: 'to-pink-400' },
+    'MUSIC': { emoji: '🎵', gradientFrom: 'from-violet-300', gradientTo: 'to-purple-400' },
+    'PHOTO_VIDEO': { emoji: '📷', gradientFrom: 'from-slate-300', gradientTo: 'to-gray-400' },
+    'IT': { emoji: '💻', gradientFrom: 'from-cyan-300', gradientTo: 'to-blue-400' },
+    'GAME': { emoji: '🎮', gradientFrom: 'from-fuchsia-300', gradientTo: 'to-purple-400' },
+    'ETC': { emoji: '📦', gradientFrom: 'from-neutral-300', gradientTo: 'to-gray-400' }
   };
-  return categoryBanners[category] || { emoji: '📚', gradientFrom: 'from-blue-400', gradientTo: 'to-purple-500' };
+  return categoryBanners[category] || { emoji: '📚', gradientFrom: 'from-blue-300', gradientTo: 'to-indigo-400' };
 };
 
 export default function ContentDetailPage({ params }) {
@@ -36,17 +46,19 @@ export default function ContentDetailPage({ params }) {
   const viewerRef = useRef(null);
   const viewerDivRef = useRef(null);
   
-  // [TODO] 실제 인증 정보에서 가져와야 함
-  // 실제 데이터: 회원 1, 2, 3, 4 있고, 유저 3, 4가 크리에이터 1, 2임
-  const [currentUserId] = useState(1); // 임시 사용자 ID (1, 2, 3, 4 중 선택)
-  // [TODO] 실제 인증 정보에서 가져와야 함
-  // 임시: 콘텐츠 로드 후 creatorId를 확인하여 크리에이터가 본인 콘텐츠를 볼 수 있도록 함
-  const [currentCreatorId, setCurrentCreatorId] = useState(null);
+  // 현재 사용자 정보 (토큰 기반 인증)
+  const [currentUserId, setCurrentUserId] = useState(null); // 로그인한 사용자 ID (null이면 비로그인)
   
   // [TODO] 실제 API에서 구독/구매 여부 확인 필요
+  const [isSubscribed, setIsSubscribed] = useState(false); // 실제 구독 여부 확인
+  const [isPurchased, setIsPurchased] = useState(false); // 실제 구매 여부 확인
   
   // 댓글 작성
   const [newComment, setNewComment] = useState('');
+
+  // 콘텐츠 좋아요 상태
+  const [isContentLiked, setIsContentLiked] = useState(false);
+  const [contentLikeCount, setContentLikeCount] = useState(0);
 
   // 조회수 중복 증가 방지 (React Strict Mode 대응)
   const loadingRef = useRef(false);
@@ -69,44 +81,46 @@ export default function ContentDetailPage({ params }) {
         // 실제 데이터를 먼저 시도 (모든 contentId에 대해)
         const data = await getContent(contentId);
         setContent(data);
-        // [TODO] 실제 인증 정보에서 가져와야 함
-        // 임시: 콘텐츠의 creatorId를 currentCreatorId로 설정 (크리에이터가 본인 콘텐츠를 볼 수 있도록)
-        if (data.creatorId) {
-          setCurrentCreatorId(data.creatorId);
+        // 콘텐츠 좋아요 수 초기화
+        setContentLikeCount(data.likeCount || 0);
+        
+        // 토큰 기반 인증으로 현재 사용자 정보 가져오기
+        try {
+          const userInfo = await getCurrentUser();
+          if (userInfo) {
+            setCurrentUserId(userInfo.userId);
+          }
+        } catch (err) {
+          // 인증 정보 가져오기 실패 시 비로그인 상태로 처리
+          setCurrentUserId(null);
         }
       } catch (err) {
-        // 실제 데이터가 없고, id가 1~4인 경우에만 목업 사용
-        if (contentId >= 1 && contentId <= 4) {
-          console.log(`콘텐츠 ${contentId} 실제 데이터 없음, 목업 데이터 사용`);
-          const fallbackContent = popularContents.find(item => item.id === contentId);
-          if (fallbackContent) {
-            const convertedContent = {
-              contentId: fallbackContent.id,
-              title: fallbackContent.title,
-              description: fallbackContent.description,
-              creatorName: fallbackContent.author,
-              createdAt: new Date().toISOString(),
-              thumbnailUrl: null,
-              category: fallbackContent.category || 'ETC',
-              planId: fallbackContent.badgeType === 'badge' && fallbackContent.badge === '구독자 전용' ? 1 : null,
-              price: fallbackContent.badgeType === 'price' ? parseInt(fallbackContent.price.replace(/[^0-9]/g, '')) : null,
-              viewCount: 0,
-              creatorId: 1,
-              post: {
-                body: fallbackContent.body || `### ${fallbackContent.title}\n\n${fallbackContent.description}`,
-                postFiles: []
-              }
-            };
-            setContent(convertedContent);
-            // 목업 데이터의 경우도 creatorId 설정
-            setCurrentCreatorId(1);
-            setError(null);
-          } else {
-            setError('콘텐츠를 찾을 수 없습니다.');
-          }
+        // 실제 데이터가 없을 때 목업 데이터 사용
+        console.log(`콘텐츠 ${contentId} 실제 데이터 없음, 목업 데이터 사용`);
+        const fallbackContent = popularContents.find(item => item.id === contentId) || popularContents[0];
+        if (fallbackContent) {
+          const convertedContent = {
+            contentId: fallbackContent.id,
+            title: fallbackContent.title,
+            description: fallbackContent.description,
+            creatorName: fallbackContent.author,
+            createdAt: new Date().toISOString(),
+            thumbnailUrl: null,
+            category: fallbackContent.category || 'ETC',
+            planId: fallbackContent.badgeType === 'badge' && fallbackContent.badge === '구독자 전용' ? 1 : null,
+            price: fallbackContent.badgeType === 'price' ? parseInt(fallbackContent.price?.replace(/[^0-9]/g, '') || '0') : null,
+            viewCount: 0,
+            likeCount: 0,
+            creatorId: 1,
+            post: {
+              body: fallbackContent.body || `### ${fallbackContent.title}\n\n${fallbackContent.description}`,
+              postFiles: []
+            }
+          };
+          setContent(convertedContent);
+          setError(null);
         } else {
-          console.error('콘텐츠 로드 실패:', err);
-          setError(err.message);
+          setError('콘텐츠를 찾을 수 없습니다.');
         }
       }
       
@@ -125,14 +139,22 @@ export default function ContentDetailPage({ params }) {
     };
   }, [id]);
 
-  // ToastUI Viewer 초기화
+  // ToastUI Viewer 초기화 (클라이언트 사이드에서만)
   useEffect(() => {
+    if (typeof window === 'undefined') return; // SSR 방지
     if (!viewerDivRef.current || viewerRef.current) return;
     if (!content?.post?.body) return;
 
-    viewerRef.current = new Viewer({
-      el: viewerDivRef.current,
-      initialValue: content.post.body || '',
+    // 동적 import로 Viewer와 CSS 로드
+    Promise.all([
+      import('@toast-ui/editor/dist/toastui-editor-viewer'),
+      import('@toast-ui/editor/dist/toastui-editor-viewer.css')
+    ]).then(([viewerModule]) => {
+      const Viewer = viewerModule.default;
+      viewerRef.current = new Viewer({
+        el: viewerDivRef.current,
+        initialValue: content.post.body || '',
+      });
     });
 
     return () => {
@@ -145,6 +167,7 @@ export default function ContentDetailPage({ params }) {
 
   // content.post.body 변경 시 Viewer 업데이트
   useEffect(() => {
+    if (typeof window === 'undefined') return; // SSR 방지
     if (viewerRef.current && content?.post?.body !== undefined) {
       viewerRef.current.setMarkdown(content.post.body);
     }
@@ -191,6 +214,8 @@ export default function ContentDetailPage({ params }) {
         setComments(hierarchicalComments);
       } catch (err) {
         console.error('댓글 로드 실패:', err);
+        // 댓글 로드 실패 시 빈 배열로 설정
+        setComments([]);
       }
     }
     if (id) {
@@ -265,6 +290,42 @@ export default function ContentDetailPage({ params }) {
     }
   };
 
+  // 콘텐츠 좋아요 토글
+  const handleToggleContentLike = async () => {
+    // canViewContent는 나중에 정의되므로 여기서 직접 계산
+    const isPaidContent = content?.planId || content?.price;
+    const canView = isOwner || 
+                    !isPaidContent || 
+                    (isLoggedIn && content?.planId && isSubscribed) || 
+                    (isLoggedIn && content?.price && isPurchased);
+    
+    if (!canView) {
+      return; // 접근 권한이 없으면 클릭 불가
+    }
+    
+    try {
+      // 낙관적 업데이트
+      setIsContentLiked(prev => !prev);
+      setContentLikeCount(prev => isContentLiked ? prev - 1 : prev + 1);
+      
+      await toggleContentLike(parseInt(id));
+      
+      // 성공 시 콘텐츠 정보 새로고침하여 최신 상태 반영
+      const data = await getContent(parseInt(id));
+      setContent(data);
+      setContentLikeCount(data.likeCount || 0);
+    } catch (err) {
+      console.error('콘텐츠 좋아요 처리 중 오류:', err);
+      // 에러 발생 시 원래 상태로 복구
+      setIsContentLiked(prev => !prev);
+      setContentLikeCount(prev => isContentLiked ? prev + 1 : prev - 1);
+      // 콘텐츠 정보 새로고침하여 최신 상태 반영
+      const data = await getContent(parseInt(id));
+      setContent(data);
+      setContentLikeCount(data.likeCount || 0);
+    }
+  };
+
   // 댓글 좋아요
   const handleToggleLike = async (commentId) => {
     try {
@@ -319,7 +380,7 @@ export default function ContentDetailPage({ params }) {
   };
 
   // 댓글 컴포넌트 (재귀적 렌더링)
-  const CommentItem = ({ comment, depth = 0, hasAccess, isFirst = false }) => {
+  const CommentItem = ({ comment, depth = 0, canComment, isFirst = false }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.comment);
     const [isReplying, setIsReplying] = useState(false);
@@ -328,9 +389,9 @@ export default function ContentDetailPage({ params }) {
     const [isLiked, setIsLiked] = useState(comment.likedByCurrentUser || comment.likedByUser || false);
     const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
     
-    // 댓글 작성자 여부 (댓글 작성자만 메뉴 표시)
+    // 댓글 작성자 여부 (로그인한 사용자 중에서 댓글 작성자만 메뉴 표시)
     // userId와 currentUserId를 숫자로 비교
-    const isOwner = Number(comment.userId) === Number(currentUserId);
+    const isCommentOwner = currentUserId !== null && Number(comment.userId) === Number(currentUserId);
     // 콘텐츠 작성자 여부 (백엔드에서 제공하는 isCreator 활용)
     const isContentCreator = comment.isCreator && content && content.creatorId === comment.userId;
     
@@ -385,9 +446,9 @@ export default function ContentDetailPage({ params }) {
                     <svg className="w-4 h-4" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
-                    <span className="text-xs">{likeCount}</span>
+                    <span className="text-xs">{formatCount(likeCount)}</span>
                   </button>
-                  {isOwner && (
+                  {isCommentOwner && (
                   <div className="relative">
                     <button
                       onClick={() => setShowMenu(!showMenu)}
@@ -464,7 +525,7 @@ export default function ContentDetailPage({ params }) {
             ) : (
               <>
                 <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">{comment.comment}</p>
-                {hasAccess && depth === 0 && (
+                {canComment && depth === 0 && (
                   <div>
                     <button
                       onClick={() => setIsReplying(!isReplying)}
@@ -533,13 +594,35 @@ export default function ContentDetailPage({ params }) {
         {comment.children && comment.children.length > 0 && (
           <div>
             {comment.children.map((child) => (
-              <CommentItem key={child.commentId} comment={child} depth={depth + 1} hasAccess={hasAccess} />
+              <CommentItem key={child.commentId} comment={child} depth={depth + 1} canComment={canComment} />
             ))}
           </div>
         )}
       </div>
     );
   };
+
+  // 현재 사용자 정보 가져오기 (토큰 기반 인증)
+  useEffect(() => {
+    async function loadCurrentUser() {
+      try {
+        const userInfo = await getCurrentUser();
+        if (userInfo) {
+          setCurrentUserId(userInfo.userId);
+        }
+      } catch (err) {
+        // 인증 정보 가져오기 실패 시 비로그인 상태로 처리
+        setCurrentUserId(null);
+      }
+    }
+    loadCurrentUser();
+  }, []);
+
+  // 로그인 여부 확인
+  const isLoggedIn = currentUserId !== null;
+  
+  // 크리에이터 본인 여부 확인 (백엔드에서 isOwner로 반환)
+  const isOwner = content?.isOwner || false;
 
   if (loading) {
     return (
@@ -561,16 +644,31 @@ export default function ContentDetailPage({ params }) {
       </div>
     );
   }
-
-  // [TODO] 실제 인증 정보로 소유자 확인 필요
+  
+  // 유료 콘텐츠 여부
   const isPaidContent = content.planId || content.price;
-  // [TODO] 실제 인증 정보에서 가져오기
-  // 크리에이터가 본인이 만든 콘텐츠를 볼 수 있도록 수정
-  const isOwner = content.creatorId && currentCreatorId && Number(content.creatorId) === Number(currentCreatorId);
-  const isSubscribed = false; // 실제 구독 여부 확인
-  const isPurchased = false; // 실제 구매 여부 확인
-  // 접근 권한: 크리에이터(본인), 구독자, 구매자, 무료사용자(무료 콘텐츠만)
-  const hasAccess = isOwner || !isPaidContent || (content.planId && isSubscribed) || (content.price && isPurchased);
+  
+  // 콘텐츠 본문 접근 권한 (보기)
+  // - 크리에이터(본인): 항상 접근 가능 (isOwner가 true면 무조건 접근)
+  // - 무료 콘텐츠: 모든 사용자 접근 가능 (로그인/비로그인 모두)
+  // - 구독 전용: 로그인한 사용자 중 구독한 사용자만 접근 가능
+  // - 단건 결제: 로그인한 사용자 중 결제한 사용자만 접근 가능
+  const canViewContent = isOwner || 
+                         !isPaidContent || 
+                         (isLoggedIn && content.planId && isSubscribed) || 
+                         (isLoggedIn && content.price && isPurchased);
+  
+  // 댓글 작성 권한 (댓글 입력)
+  // - 크리에이터(본인): 항상 댓글 작성 가능
+  // - 무료 콘텐츠: 로그인한 사용자만 댓글 작성 가능
+  // - 구독 전용: 로그인한 사용자 중 구독한 사용자만 댓글 작성 가능
+  // - 단건 결제: 로그인한 사용자 중 결제한 사용자만 댓글 작성 가능
+  const canComment = isOwner || 
+                     (isLoggedIn && (
+                       !isPaidContent || 
+                       (content.planId && isSubscribed) || 
+                       (content.price && isPurchased)
+                     ));
   const badgeInfo = content.planId 
     ? { type: 'badge', text: '구독자 전용' }
     : content.price 
@@ -603,7 +701,11 @@ export default function ContentDetailPage({ params }) {
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"></div>
-                    <span className="text-gray-700">{content.creatorName || '크리에이터'}</span>
+                    <span className="text-gray-700">
+                      {content.creatorId 
+                        ? (creators.find(c => c.id === content.creatorId)?.name || '크리에이터')
+                        : (content.creatorName || '크리에이터')}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-500">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -616,8 +718,24 @@ export default function ContentDetailPage({ params }) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <span>{content.viewCount || 0}</span>
+                    <span>{formatCount(content.viewCount || 0)}</span>
                   </div>
+                  <button
+                    onClick={handleToggleContentLike}
+                    disabled={!canViewContent || !isLoggedIn}
+                    className={`flex items-center gap-1 transition ${
+                      !canViewContent || !isLoggedIn
+                        ? 'text-gray-300 cursor-not-allowed' 
+                        : isContentLiked 
+                        ? 'text-red-500' 
+                        : 'text-gray-400 hover:text-red-500'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill={isContentLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span className="text-xs">{formatCount(contentLikeCount)}</span>
+                  </button>
                 </div>
               </div>
               {badgeInfo && (
@@ -643,7 +761,7 @@ export default function ContentDetailPage({ params }) {
         {content.post && content.post.body && (
           <div className="bg-white rounded-lg p-6 mb-8 border border-gray-200">
             <div className="prose prose-lg max-w-none">
-              {hasAccess ? (
+              {canViewContent ? (
                 <div className="toastui-editor-viewer-wrapper">
                   <div ref={viewerDivRef} />
                 </div>
@@ -734,7 +852,7 @@ export default function ContentDetailPage({ params }) {
                   key={comment.commentId} 
                   comment={comment} 
                   depth={0} 
-                  hasAccess={hasAccess}
+                  canComment={canComment}
                   isFirst={index === 0}
                 />
               ))}
@@ -745,8 +863,8 @@ export default function ContentDetailPage({ params }) {
             </div>
           )}
 
-          {/* 댓글 작성 폼 - 콘텐츠 접근 권한이 있는 경우만 표시 (하단) */}
-          {hasAccess ? (
+          {/* 댓글 작성 폼 - 댓글 작성 권한이 있는 경우만 표시 (하단) */}
+          {canComment && (
             <form onSubmit={handleAddComment} className="pt-4">
               <div className="flex items-start gap-3">
                 {/* [TODO] 현재 사용자 프로필 이미지 표시 */}
@@ -770,7 +888,10 @@ export default function ContentDetailPage({ params }) {
                 </div>
               </div>
             </form>
-          ) : (
+          )}
+          
+          {/* 로그인한 사용자 중 댓글 작성 권한이 없는 경우에만 메시지 표시 (비로그인 사용자에게는 표시 안 함) */}
+          {!canComment && isLoggedIn && (
             <div className="pt-4 bg-yellow-50 py-3 px-2">
               <p className="text-xs text-yellow-800 text-center leading-relaxed">
                 댓글을 작성하려면 콘텐츠에 접근할 수 있는 권한이 필요합니다.

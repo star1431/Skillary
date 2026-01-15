@@ -21,7 +21,7 @@ export default function PopularContentSection() {
         if (apiContents.length > 0) {
           setContents(apiContents);
         } else {
-          // 실제 데이터가 없을 때만 목업 데이터 사용
+          // [임시] 실제 데이터가 없을 때만 목업 데이터 사용
           const fallbackContents = popularContents.map((item, index) => ({
             contentId: item.id,
             title: item.title,
@@ -31,13 +31,15 @@ export default function PopularContentSection() {
             thumbnailUrl: null,
             category: item.category || 'ETC',
             planId: item.badge === '구독자 전용' && item.badgeType === 'badge' ? 1 : null,
-            price: item.badgeType === 'price' ? parseInt(item.price.replace(/[^0-9]/g, '')) : null
+            price: item.badgeType === 'price' ? parseInt(item.price.replace(/[^0-9]/g, '')) : null,
+            viewCount: 0,
+            likeCount: 0
           }));
           setContents(fallbackContents);
         }
       } catch (err) {
         console.error('인기 콘텐츠 로드 실패:', err);
-        // 에러 시 임시 데이터 사용
+        // [임시] 에러 시 목업 데이터 사용
         const fallbackContents = popularContents.map((item) => ({
           contentId: item.id,
           title: item.title,
@@ -47,7 +49,9 @@ export default function PopularContentSection() {
           thumbnailUrl: null,
           category: item.category || 'ETC',
           planId: item.badge === '구독자 전용' && item.badgeType === 'badge' ? 1 : null,
-          price: item.badgeType === 'price' ? parseInt(item.price.replace(/[^0-9]/g, '')) : null
+          price: item.badgeType === 'price' ? parseInt(item.price.replace(/[^0-9]/g, '')) : null,
+          viewCount: 0,
+          likeCount: 0
         }));
         setContents(fallbackContents);
       } finally {
@@ -133,6 +137,8 @@ export default function PopularContentSection() {
                 price={badgeInfo.type === 'price' ? badgeInfo.text : null}
                 thumbnailUrl={content.thumbnailUrl}
                 category={content.category}
+                viewCount={content.viewCount || 0}
+                likeCount={content.likeCount || 0}
               />
             );
           })}

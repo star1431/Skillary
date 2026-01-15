@@ -142,6 +142,8 @@ public class CommentServiceImpl implements CommentService {
 		boolean exists = commentLikeRepository.existsByComment_CommentIdAndUser_UserId(commentId, userId);
 
 		if (exists) {
+			// Comment의 likes 리스트에서 해당 좋아요를 찾아서 제거 (영속성 컨텍스트 동기화)
+			comment.getLikes().removeIf(like -> like.getUser().getUserId().equals(userId));
 			commentLikeRepository.deleteByComment_CommentIdAndUser_UserId(commentId, userId);
 			comment.setLikeCount(comment.getLikeCount() - 1);
 		} else {
@@ -150,6 +152,8 @@ public class CommentServiceImpl implements CommentService {
 				.user(user)
 				.build();
 			commentLikeRepository.save(like);
+			// Comment의 likes 리스트에 추가 (양방향 관계 동기화)
+			comment.getLikes().add(like);
 			comment.setLikeCount(comment.getLikeCount() + 1);
 		}
 

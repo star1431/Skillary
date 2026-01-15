@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    
     @Override
     @Transactional(readOnly = true)
     public MeResponse me(Byte userId) {

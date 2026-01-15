@@ -396,7 +396,7 @@ export default function CreateContentPage({ params }) {
       }
     } catch (err) {
       console.error('콘텐츠 저장 실패:', err);
-      alert('콘텐츠 저장에 실패했습니다.');
+      alert('콘텐츠 저장에 실패했습니다: ' + (err.message || '알 수 없는 오류가 발생했습니다.'));
     } finally {
       setLoading(false);
     }

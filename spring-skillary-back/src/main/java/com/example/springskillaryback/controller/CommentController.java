@@ -80,7 +80,7 @@ public class CommentController {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
 		}
 		commentService.toggleLike(commentId, userId);
-		return ResponseEntity.ok().build(); // 200
+		return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
 	}
 }
 

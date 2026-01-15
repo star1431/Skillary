@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, use, useEffect, useRef } from 'react';
 import { creators } from '../components/data';
-import { popularContents } from '../../components/popularContentsData';
 import PopularCard from '../../components/PopularCard';
 import { getContentsByCreator } from '../../api/contents';
 
@@ -44,48 +43,10 @@ export default function CreatorProfilePage({ params }) {
       try {
         const data = await getContentsByCreator(creator.id, 0, 20);
         const apiContents = data.content || [];
-        
-        // id 1~4에 대해 실제 데이터가 있는지 확인
-        const contentIds = [1, 2, 3, 4];
-        const existingIds = apiContents.map(c => c.contentId).filter(id => contentIds.includes(id));
-        
-        // id 1~4가 모두 실제 데이터로 존재하면 API 데이터 사용, 아니면 목업 데이터 사용
-        if (existingIds.length === 4 && apiContents.length >= 4) {
-          setCreatorContents(apiContents);
-        } else {
-          // 임시 데이터를 API 형식으로 변환
-          const fallbackContents = popularContents
-            .filter(content => content.author === creator.name)
-            .map((item) => ({
-              contentId: item.id,
-              title: item.title,
-              description: item.description,
-              creatorName: item.author,
-              createdAt: new Date().toISOString(),
-              thumbnailUrl: null,
-              category: item.category || 'ETC',
-              planId: item.badge === '구독자 전용' && item.badgeType === 'badge' ? 1 : null,
-              price: item.badgeType === 'price' ? parseInt(item.price.replace(/[^0-9]/g, '')) : null
-            }));
-          setCreatorContents(fallbackContents);
-        }
+        setCreatorContents(apiContents);
       } catch (err) {
         console.error('크리에이터 콘텐츠 로드 실패:', err);
-        // 에러 시 임시 데이터 사용
-        const fallbackContents = popularContents
-          .filter(content => content.author === creator.name)
-          .map((item) => ({
-            contentId: item.id,
-            title: item.title,
-            description: item.description,
-            creatorName: item.author,
-            createdAt: new Date().toISOString(),
-            thumbnailUrl: null,
-            category: item.category || 'ETC',
-            planId: item.badge === '구독자 전용' && item.badgeType === 'badge' ? 1 : null,
-            price: item.badgeType === 'price' ? parseInt(item.price.replace(/[^0-9]/g, '')) : null
-          }));
-        setCreatorContents(fallbackContents);
+        setCreatorContents([]);
       } finally {
         setLoadingContents(false);
       }
@@ -97,11 +58,10 @@ export default function CreatorProfilePage({ params }) {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${year}. ${month}. ${day}.`;
   };
 
   // 가격 포맷팅
@@ -274,6 +234,8 @@ export default function CreatorProfilePage({ params }) {
                   price={badgeInfo.type === 'price' ? badgeInfo.text : null}
                   thumbnailUrl={content.thumbnailUrl}
                   category={content.category}
+                  viewCount={content.viewCount || 0}
+                  likeCount={content.likeCount || 0}
                 />
               );
             })}

@@ -27,5 +27,8 @@ public interface ContentService {
 	ContentResponseDto getContent(Byte contentId);
 	
 	void deleteContent(Byte contentId, Byte creatorId);
+	
+	/** 콘텐츠 좋아요 토글 */
+	void toggleLike(Byte contentId, Byte userId);
 }
 

@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -20,6 +21,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Table(name = "contents")
 @Builder
@@ -51,6 +54,14 @@ public class Content {
 	@Column(name = "view_counts", nullable = false)
 	@Builder.Default
 	private Integer viewCount = 0;
+
+	@Column(name = "like_counts", nullable = false)
+	@Builder.Default
+	private Integer likeCount = 0;
+
+	@OneToMany(mappedBy = "content", cascade = CascadeType.ALL, orphanRemoval = true)
+	@Builder.Default
+	private List<ContentLike> likes = new ArrayList<>();
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "plan_id")

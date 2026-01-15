@@ -124,5 +124,19 @@ public class ContentController {
 		
 		return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
 	}
+
+	/** 콘텐츠 좋아요 토글 */
+	@PostMapping("/{contentId}/like")
+	public ResponseEntity<Void> toggleLike(
+		@PathVariable Byte contentId,
+		HttpServletRequest request
+	) {
+		Byte userId = tokenUtil.getUserIdFromToken(request);
+		if (userId == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
+		}
+		contentService.toggleLike(contentId, userId);
+		return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
+	}
 }
 

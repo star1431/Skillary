@@ -15,7 +15,8 @@ public record ContentListResponseDto(
 		String thumbnailUrl,
 		LocalDateTime createdAt,
 		LocalDateTime updatedAt,
-		Integer viewCount
+		Integer viewCount,
+		Integer likeCount
 ) {
 }
 

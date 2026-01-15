@@ -10,9 +10,13 @@ import com.example.springskillaryback.domain.Creator;
 import com.example.springskillaryback.domain.Post;
 import com.example.springskillaryback.domain.PostFile;
 import com.example.springskillaryback.domain.SubscriptionPlan;
+import com.example.springskillaryback.domain.ContentLike;
+import com.example.springskillaryback.domain.User;
+import com.example.springskillaryback.repository.ContentLikeRepository;
 import com.example.springskillaryback.repository.ContentRepository;
 import com.example.springskillaryback.repository.CreatorRepository;
 import com.example.springskillaryback.repository.SubscriptionPlanRepository;
+import com.example.springskillaryback.repository.UserRepository;
 import com.example.springskillaryback.service.ContentService;
 import com.example.springskillaryback.service.FileService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +40,8 @@ public class ContentServiceImpl implements ContentService {
 	private final CreatorRepository creatorRepository;
 	private final SubscriptionPlanRepository subscriptionPlanRepository;
 	private final FileService fileService;
+	private final ContentLikeRepository contentLikeRepository;
+	private final UserRepository userRepository;
 
 	/** 콘텐츠 생성 */
 	@Override
@@ -143,7 +149,7 @@ public class ContentServiceImpl implements ContentService {
 		return contents.map(this::toListDto);
 	}
 
-	/** 인기 콘텐츠 목록 조회 (조회순 기준) */
+	/** 인기 콘텐츠 목록 조회 (라이크 수 기준) */
 	@Override
 	@Transactional(readOnly = true)
 	public Slice<ContentListResponseDto> getPopularContents(int page, int size) {
@@ -313,9 +319,40 @@ public class ContentServiceImpl implements ContentService {
 			content.getThumbnailUrl(),
 			content.getCreatedAt(),
 			content.getUpdatedAt(),
-			content.getViewCount() != null ? content.getViewCount() : 0,
+			content.getViewCount(),
 			postDto
 		);
+	}
+
+	/** 콘텐츠 좋아요 토글 */
+	@Override
+	public void toggleLike(Byte contentId, Byte userId) {
+		Content content = contentRepository.findById(contentId)
+			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
+
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+		// 이미 눌렀는지 확인
+		boolean exists = contentLikeRepository.existsByContent_ContentIdAndUser_UserId(contentId, userId);
+
+		if (exists) {
+			// Content의 likes 리스트에서 해당 좋아요를 찾아서 제거
+			content.getLikes().removeIf(like -> like.getUser().getUserId().equals(userId));
+			contentLikeRepository.deleteByContent_ContentIdAndUser_UserId(contentId, userId);
+			content.setLikeCount(content.getLikeCount() - 1);
+		} else {
+			ContentLike like = ContentLike.builder()
+				.content(content)
+				.user(user)
+				.build();
+			contentLikeRepository.save(like);
+			// Content의 likes 리스트에 추가
+			content.getLikes().add(like);
+			content.setLikeCount(content.getLikeCount() + 1);
+		}
+
+		contentRepository.save(content);
 	}
 
 	/** 리스트dto 변환 */
@@ -334,7 +371,8 @@ public class ContentServiceImpl implements ContentService {
 			content.getThumbnailUrl(),
 			content.getCreatedAt(),
 			content.getUpdatedAt(),
-			content.getViewCount() != null ? content.getViewCount() : 0
+			content.getViewCount(),
+			content.getLikeCount()
 		);
 	}
 }

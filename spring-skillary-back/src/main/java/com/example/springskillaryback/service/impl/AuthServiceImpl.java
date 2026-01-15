@@ -16,12 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.regex.Pattern;
 import java.util.Optional;
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+    private static final int NICKNAME_MIN_LEN = 4;
+    private static final int NICKNAME_MAX_LEN = 12;
+    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9_]+$");
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
@@ -33,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void register(String email, String password, String nickname) {
+        validateNickname(nickname);
         Optional<VerifiedEmail> verifiedEmail = verifiedEmailRepository.findByEmail(email);
         if (verifiedEmail.isEmpty()) {
             throw new IllegalStateException("email not verified");
@@ -98,6 +104,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public boolean isNicknameAvailable(String nickname) {
+        validateNickname(nickname);
+        String trimmedNickname = nickname.trim();
+        return !userRepository.existsByNickname(trimmedNickname);
+    }
+
+    private void validateNickname(String nickname) {
         if (!StringUtils.hasText(nickname)) {
             throw new IllegalStateException("닉네임을 입력해주세요");
         }
@@ -105,7 +117,15 @@ public class AuthServiceImpl implements AuthService {
         if (!trimmedNickname.equals(nickname)) {
             throw new IllegalStateException("닉네임 앞뒤에 공백을 사용할 수 없습니다");
         }
-        return !userRepository.existsByNickname(trimmedNickname);
+        if (trimmedNickname.length() < NICKNAME_MIN_LEN) {
+            throw new IllegalStateException("닉네임은 4자 이상이어야 합니다");
+        }
+        if (trimmedNickname.length() > NICKNAME_MAX_LEN) {
+            throw new IllegalStateException("닉네임은 12자 이하여야 합니다");
+        }
+        if (!NICKNAME_PATTERN.matcher(trimmedNickname).matches()) {
+            throw new IllegalStateException("닉네임은 한글/영문/숫자/밑줄(_)만 사용할 수 있습니다");
+        }
     }
 
     @Override
@@ -120,10 +140,6 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.deleteAllByUserId(userId);
     }
 
-    @Override
-    public boolean withdrawal(String refreshToken) {
-        return false;
-    }
 
     @Transactional(readOnly = true)
     public String refresh(String accessToken) {

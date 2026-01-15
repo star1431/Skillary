@@ -31,6 +31,10 @@ export default function Header() {
     };
   }, [isDropdownOpen]);
 
+  // NOTE:
+  // - 페이지 로드시 refresh 호출을 막아서(루트 포함) "클릭하기 전에는" 네트워크/콘솔에 401이 뜨지 않게 함
+  // - 필요할 때(드롭다운 열 때)만 아래에서 silentRefresh() 호출
+  /*
   useEffect(() => {
     // httpOnly 쿠키라 FE에서 직접 확인 불가 → refresh로 로그인 여부 판별(201=로그인, 401=비로그인)
     const check = async () => {
@@ -41,9 +45,20 @@ export default function Header() {
     };
     check();
   }, [pathname]);
+  */
 
   const handleToggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const handleOpenDropdown = async () => {
+    // 로그인/회원가입 페이지에서는 refresh 호출 자체를 하지 않음(401 요청이 콘솔/네트워크에 뜨는 것 방지)
+    if (pathname === '/auth/login' || pathname === '/auth/register') {
+      setIsAuthed(false);
+      return;
+    }
+    const ok = await silentRefresh();
+    setIsAuthed(!!ok);
   };
 
   const handleLogout = async () => {
@@ -101,6 +116,8 @@ export default function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => {
+                    // 드롭다운을 "열 때만" 로그인 상태 체크
+                    if (!isDropdownOpen) handleOpenDropdown();
                     handleToggleDropdown();
                     if (isAlertOpen) {
                       setIsAlertOpen(false);

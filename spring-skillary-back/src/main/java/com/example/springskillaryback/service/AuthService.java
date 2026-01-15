@@ -13,7 +13,5 @@ public interface AuthService {
 
 	void logout(String refreshToken);
 
-	boolean withdrawal(String refreshToken);
-
 	String refresh(String accessToken);
 }

@@ -33,16 +33,19 @@ public class Creator {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Byte creatorId;
 
-	@Column(length = 100, nullable = false, unique = true)
-	private String displayName;
+//	@Column(length = 100, nullable = false, unique = true)
+//	private String displayName;
 
-	private String profile;
+    private String introduction;
+
+	private String profile; // url (사진)
 
     private String bankName;
 
     private String accountNumber;
 
-    private Byte follow_count;
+    @Builder.Default
+    private Byte followCount = 0;
 
     @Builder.Default
 	private boolean isDeleted = false;
@@ -53,7 +56,7 @@ public class Creator {
 	@UpdateTimestamp
 	private LocalDateTime updatedAt;
 
-	@OneToOne(orphanRemoval = true)
+	@OneToOne
 	@JoinColumn(name = "user_id", unique = true)
 	private User user;
 

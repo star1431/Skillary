@@ -16,6 +16,7 @@ export default function RegisterPage() {
     const [isVerified, setIsVerified] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+  const nicknamePattern = /^[가-힣a-zA-Z0-9_]+$/;
     const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     const passwordPattern = /^[A-Za-z0-9!@#$%^&*()_+\-=[\]{};:'",.<>/?`~|]+$/;
 
@@ -161,6 +162,18 @@ export default function RegisterPage() {
             setError('닉네임 앞뒤에 공백을 사용할 수 없습니다.');
             return;
         }
+        if (nickname.trim().length < 4) {
+            setError('닉네임은 4자 이상이어야 합니다.');
+            return;
+        }
+        if (nickname.trim().length > 12) {
+            setError('닉네임은 12자 이하여야 합니다.');
+            return;
+        }
+        if (!nicknamePattern.test(nickname)) {
+            setError('닉네임은 한글/영문/숫자/밑줄(_)만 사용할 수 있습니다.');
+            return;
+        }
         setIsLoading(true);
         try {
             const nicknameCheckResponse = await fetch(
@@ -262,7 +275,7 @@ export default function RegisterPage() {
                       className={`w-full px-4 py-2 pr-20 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                         isVerified ? 'bg-gray-100 cursor-not-allowed' : ''
                       }`}
-                      placeholder="인증코드를 입력하세요"
+                      placeholder="인증코드"
                       required
                     />
                     {!isVerified && (

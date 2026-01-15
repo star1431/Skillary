@@ -20,4 +20,14 @@ public class UserServiceImpl implements UserService {
 
         return new MeResponse(user.getUserId(), user.getEmail(), user.getNickname(), user.getRoles());
     }
+
+    @Override
+    public void updateUser(Byte userId) {
+        // TODO: 유저 정보 수정
+    }
+
+    @Override
+    public void deleteUser(Byte userId) {
+        // TODO: 회원 탈퇴
+    }
 }

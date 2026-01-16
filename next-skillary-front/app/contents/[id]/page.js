@@ -154,89 +154,83 @@ export default function ContentDetailPage({ params }) {
     ? { type: 'price', text: `₩${content.price.toLocaleString()}` }
     : { type: 'badge', text: '무료' };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          <p className="text-gray-600">콘텐츠를 불러오는 중...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !content) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-black mb-4">콘텐츠를 찾을 수 없습니다</h1>
-          <Link href="/contents" className="text-blue-600 hover:underline">
-            콘텐츠 목록으로 돌아가기
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 섹션 */}
-        <ContentHead
-          content={content}
-          canViewContent={canViewContent}
-          isLoggedIn={isLoggedIn}
-        />
-
-        {/* 콘텐츠 본문 */}
-        <ContentBody
-          content={content}
-          canViewContent={canViewContent}
-        />
-
-        {/* 액션 버튼 */}
-        <div className="flex gap-4 mb-8">
-          {/* 본인 소유인 경우에만 수정/삭제 버튼 표시 */}
-          {isOwner && (
-            <>
-              <button
-                onClick={handleEdit}
-                className="px-6 py-3 border-2 border-black text-black rounded-lg font-semibold hover:bg-gray-50 transition"
-              >
-                수정하기
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-6 py-3 border-2 border-red-500 text-red-500 rounded-lg font-semibold hover:bg-red-50 transition"
-              >
-                삭제하기
-              </button>
-            </>
-          )}
-          {!isOwner && badgeInfo.type === 'price' && (
-            <button className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition">
-              구매하기 ({badgeInfo.text})
-            </button>
-          )}
-          {!isOwner && badgeInfo.type === 'badge' && badgeInfo.text === '구독자 전용' && (
-            <Link 
-              href={`/orders?contentId=${id}`}
-              className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition text-center block"
-            >
-              구독하기
-            </Link>
-          )}
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            <p className="text-gray-600">콘텐츠를 불러오는 중...</p>
+          </div>
         </div>
+      ) : error || !content ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-black mb-4">콘텐츠를 찾을 수 없습니다</h1>
+            <Link href="/contents" className="text-blue-600 hover:underline">
+              콘텐츠 목록으로 돌아가기
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* 헤더 섹션 */}
+          <ContentHead
+            content={content}
+            canViewContent={canViewContent}
+            isLoggedIn={isLoggedIn}
+          />
 
-        {/* 댓글 섹션 */}
-        <CommentSection
-          contentId={id}
-          canComment={canComment}
-          isLoggedIn={isLoggedIn}
-          currentUserId={currentUserId}
-          contentCreatorId={content?.creatorId}
-        />
-      </div>
+          {/* 콘텐츠 본문 */}
+          <ContentBody
+            content={content}
+            canViewContent={canViewContent}
+          />
+
+          {/* 액션 버튼 */}
+          <div className="flex gap-4 mb-8">
+            {/* 본인 소유인 경우에만 수정/삭제 버튼 표시 */}
+            {isOwner && (
+              <>
+                <button
+                  onClick={handleEdit}
+                  className="px-6 py-3 border-2 border-black text-black rounded-lg font-semibold hover:bg-gray-50 transition"
+                >
+                  수정하기
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-6 py-3 border-2 border-red-500 text-red-500 rounded-lg font-semibold hover:bg-red-50 transition"
+                >
+                  삭제하기
+                </button>
+              </>
+            )}
+            {!isOwner && badgeInfo.type === 'price' && (
+              <button className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition">
+                구매하기 ({badgeInfo.text})
+              </button>
+            )}
+            {!isOwner && badgeInfo.type === 'badge' && badgeInfo.text === '구독자 전용' && (
+              <Link 
+                href={`/orders?contentId=${id}`}
+                className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition text-center block"
+              >
+                구독하기
+              </Link>
+            )}
+          </div>
+
+          {/* 댓글 섹션 */}
+          <CommentSection
+            contentId={id}
+            canComment={canComment}
+            isLoggedIn={isLoggedIn}
+            currentUserId={currentUserId}
+            contentCreatorId={content?.creatorId}
+          />
+        </div>
+      )}
     </div>
   );
 }

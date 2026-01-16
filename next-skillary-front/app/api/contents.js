@@ -23,7 +23,10 @@ export async function getContent(contentId) {
   return await baseRequest(
     'GET',
     {},
-    `/contents/${contentId}`
+    `/contents/${contentId}`,
+    null,
+    '콘텐츠 조회 중 오류가 발생했습니다.',
+    true
   );
 }
 
@@ -153,7 +156,7 @@ export async function deleteContent(contentId) {
 /**
  * 콘텐츠 좋아요 토글
  * @param {number} contentId - 콘텐츠 ID
- * @returns {Promise} null (204 No Content)
+ * @returns {Promise} 좋아요 응답 (likeCount, isLiked)
  */
 export async function toggleContentLike(contentId) {
   return await baseRequest(

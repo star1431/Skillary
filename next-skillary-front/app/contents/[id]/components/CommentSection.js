@@ -1,21 +1,150 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { getComments, addComment, updateComment, deleteComment, toggleLike } from '../../../api/comments';
 import CommentItem from './CommentItem';
 
 export default function CommentSection({
-  comments,
+  contentId,
   canComment,
   isLoggedIn,
   currentUserId,
-  contentCreatorId,
-  newComment,
-  setNewComment,
-  onAddComment,
-  onAddReply,
-  onUpdateComment,
-  onDeleteComment,
-  onToggleLike
+  contentCreatorId
 }) {
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  // 댓글 목록을 계층 구조로 변환하는 함수
+  const transformCommentsToHierarchy = (data) => {
+    let commentsList = [];
+    if (Array.isArray(data)) {
+      commentsList = data;
+    } else if (data && Array.isArray(data.content)) {
+      commentsList = data.content;
+    } else if (data && Array.isArray(data.comments)) {
+      commentsList = data.comments;
+    } else {
+      commentsList = data || [];
+    }
+    
+    const topLevelComments = commentsList.filter(comment => !comment.parentId && comment.parentId !== 0);
+    const buildCommentTree = (parentId) => {
+      return commentsList
+        .filter(comment => comment.parentId === parentId)
+        .map(comment => ({
+          ...comment,
+          likedByCurrentUser: comment.likedByCurrentUser || comment.likedByUser || false,
+          children: buildCommentTree(comment.commentId)
+        }));
+    };
+    return topLevelComments.map(comment => ({
+      ...comment,
+      likedByCurrentUser: comment.likedByCurrentUser || comment.likedByUser || false,
+      children: buildCommentTree(comment.commentId)
+    }));
+  };
+
+  // 댓글 목록 로드
+  useEffect(() => {
+    async function loadComments() {
+      try {
+        const data = await getComments(parseInt(contentId));
+        const hierarchicalComments = transformCommentsToHierarchy(data);
+        setComments(hierarchicalComments);
+      } catch (err) {
+        console.error('댓글 로드 실패:', err);
+        setComments([]);
+      }
+    }
+    if (contentId) {
+      loadComments();
+    }
+  }, [contentId]);
+
+  // 댓글 작성
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      await addComment(parseInt(contentId), { comment: newComment.trim() });
+      setNewComment('');
+      // 댓글 목록 새로고침
+      const data = await getComments(parseInt(contentId));
+      const hierarchicalComments = transformCommentsToHierarchy(data);
+      setComments(hierarchicalComments);
+    } catch (err) {
+      console.error('댓글 작성 실패:', err);
+      alert('댓글 작성에 실패했습니다: ' + err.message);
+    }
+  };
+
+  // 대댓글 작성
+  const handleAddReply = async (parentId, replyText) => {
+    if (!replyText || !replyText.trim()) return;
+
+    try {
+      await addComment(parseInt(contentId), { 
+        comment: replyText.trim(),
+        parentId: parentId 
+      });
+      // 댓글 목록 새로고침
+      const data = await getComments(parseInt(contentId));
+      const hierarchicalComments = transformCommentsToHierarchy(data);
+      setComments(hierarchicalComments);
+    } catch (err) {
+      console.error('대댓글 작성 실패:', err);
+      alert('대댓글 작성에 실패했습니다: ' + err.message);
+    }
+  };
+
+  // 댓글 수정
+  const handleUpdateComment = async (commentId, newText) => {
+    try {
+      await updateComment(parseInt(contentId), commentId, { comment: newText });
+      // 댓글 목록 새로고침
+      const data = await getComments(parseInt(contentId));
+      const hierarchicalComments = transformCommentsToHierarchy(data);
+      setComments(hierarchicalComments);
+    } catch (err) {
+      console.error('댓글 수정 실패:', err);
+      alert('댓글 수정에 실패했습니다: ' + err.message);
+    }
+  };
+
+  // 댓글 삭제
+  const handleDeleteComment = async (commentId) => {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return;
+
+    try {
+      await deleteComment(parseInt(contentId), commentId);
+      // 댓글 목록 새로고침
+      const data = await getComments(parseInt(contentId));
+      const hierarchicalComments = transformCommentsToHierarchy(data);
+      setComments(hierarchicalComments);
+    } catch (err) {
+      console.error('댓글 삭제 실패:', err);
+      alert('댓글 삭제에 실패했습니다: ' + err.message);
+    }
+  };
+
+  // 댓글 좋아요
+  const handleToggleLike = async (commentId) => {
+    try {
+      await toggleLike(parseInt(contentId), commentId);
+    } catch (err) {
+      console.error('좋아요 API 호출 실패:', err);
+    }
+    
+    // 항상 댓글 목록을 새로고침하여 최신 좋아요 상태 반영
+    try {
+      const data = await getComments(parseInt(contentId));
+      const hierarchicalComments = transformCommentsToHierarchy(data);
+      setComments(hierarchicalComments);
+    } catch (refreshErr) {
+      console.error('댓글 목록 새로고침 실패:', refreshErr);
+    }
+  };
+
   // 댓글 개수 계산 (대댓글 포함)
   const countComments = (comments) => {
     return comments.reduce((count, comment) => {
@@ -43,10 +172,10 @@ export default function CommentSection({
               isFirst={index === 0}
               currentUserId={currentUserId}
               contentCreatorId={contentCreatorId}
-              onAddReply={onAddReply}
-              onUpdateComment={onUpdateComment}
-              onDeleteComment={onDeleteComment}
-              onToggleLike={onToggleLike}
+              onAddReply={handleAddReply}
+              onUpdateComment={handleUpdateComment}
+              onDeleteComment={handleDeleteComment}
+              onToggleLike={handleToggleLike}
             />
           ))}
         </div>
@@ -58,7 +187,7 @@ export default function CommentSection({
 
       {/* 댓글 작성 폼 - 댓글 작성 권한이 있는 경우만 표시 (하단) */}
       {canComment && (
-        <form onSubmit={onAddComment} className="pt-4">
+        <form onSubmit={handleAddComment} className="pt-4">
           <div className="flex items-start gap-3">
             {/* [TODO] 현재 사용자 프로필 이미지 표시 */}
             <div className="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0"></div>

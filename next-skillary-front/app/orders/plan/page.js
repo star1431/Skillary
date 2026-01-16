@@ -2,38 +2,31 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import useSWR from 'swr';
 import { useSearchParams } from 'next/navigation';
-import { confirmBillingPay, planOrder } from '@/api/payments';
+import { confirmBillingPay, planOrder, restartOrder } from '@/api/payments';
 
 export default function BillingOrderPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const isFetched = useRef(false);
-
-  const [orderResponse, setOrderResponse] = useState(null);
 
   const orderId = searchParams.get('orderId');
   const planId = searchParams.get('planId');
 
-  const fetchData = async () => {
-    if (isFetched.current) return;
+  const { data: orderResponse, error, isLoading } = useSWR(
+    (!orderId && !planId) ? null : ['plan-order', orderId, planId],
 
-    if (orderId) {
-      setOrderResponse(await retrieveOrder(orderId));
-    } else {
-      setOrderResponse(await planOrder(planId));
+    async () => {
+      if (orderId) return await restartOrder(orderId)
+      if (planId) return await planOrder(planId);
+      return null;
     }
+  )
 
-    isFetched.current = true;
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  if (isLoading) return <div className="p-10 text-center">로딩 중...</div>;
 
   // 구독 플랜 또는 콘텐츠가 없으면 에러 표시
-  if (!planId && !orderId) {
+  if (!orderResponse) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -45,8 +38,6 @@ export default function BillingOrderPage() {
       </div>
     );
   }
-
-  if (!orderResponse) return <div className="p-10 text-center">로딩 중...</div>;
 
   const handlePayment = async () => {
     try {

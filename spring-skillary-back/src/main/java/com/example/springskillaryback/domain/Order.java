@@ -84,6 +84,14 @@ public class Order {
 		status = OrderStatusEnum.PAID;
 	}
 
+	public void expire() {
+		status = OrderStatusEnum.EXPIRED;
+	}
+
+	public boolean isNotPending() {
+		return this.status != OrderStatusEnum.PENDING;
+	}
+
 	public boolean isPaid() {
 		return this.status == OrderStatusEnum.PAID;
 	}

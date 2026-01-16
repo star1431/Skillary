@@ -22,8 +22,19 @@ export default function OrdersListPage() {
     }
   };
 
-  const handleRestartOrder = (orderId) => {
-    const res = restartOrder(orderId);
+  const getStatusName = (status) => {
+    switch (status) {
+      case 'PENDING': return '대기중';
+      case 'PAID': return '지불 완료';
+      case 'FAILED': return '결제 실패';
+      case 'CANCELLED': return '결제 취소';
+      case 'EXPIRED': return '만료됨';
+      default: return '문의해주세요';
+    }
+  };
+
+  const handleRestartOrder = async (orderId) => {
+    const res = await restartOrder(orderId);
     if (res.planName)
       router.push(`/orders/plan?orderId=${orderId}`);
     else 
@@ -123,9 +134,9 @@ export default function OrdersListPage() {
                             <div className="text-xs text-gray-500">/월</div>
                           )}
                         </div>
+                        {console.log('orderStatus', order.orderStatus)}
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusStyles(order.orderStatus)}`}>
-                          {console.log('order status: ', order.orderStatus)}
-                          {order.orderStatus}
+                          {getStatusName(order.orderStatus)}
                         </span>
                       </div>
                     </div>

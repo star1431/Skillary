@@ -29,5 +29,7 @@ public interface PaymentService {
 
 	boolean withdrawPayment(byte paymentId, String cancelReason);
 
+	boolean withdrawCard(byte cardId);
+
 	Order retrieveOrder(String orderId);
 }

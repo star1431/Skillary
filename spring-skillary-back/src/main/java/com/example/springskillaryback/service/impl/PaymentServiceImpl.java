@@ -7,6 +7,7 @@ import com.example.springskillaryback.domain.Content;
 import com.example.springskillaryback.domain.CreditMethodEnum;
 import com.example.springskillaryback.domain.CreditStatusEnum;
 import com.example.springskillaryback.domain.Order;
+import com.example.springskillaryback.domain.OrderStatusEnum;
 import com.example.springskillaryback.domain.Payment;
 import com.example.springskillaryback.domain.Subscribe;
 import com.example.springskillaryback.domain.SubscribeStatusEnum;
@@ -27,11 +28,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -172,8 +175,12 @@ public class PaymentServiceImpl implements PaymentService {
 		if (!order.verifyWith(credit))
 			throw new RuntimeException("주문 정보가 왜곡됐습니다.");
 
-		if (order.isPaid() || paymentRepository.existsByPaymentKey(paymentKey))
+		if (order.getCreatedAt().plusMinutes(10).isAfter(LocalDateTime.now()))
+			throw new IllegalArgumentException("이미 만료된 주문입니다.");
+		if (order.isPaid())
 			throw new IllegalArgumentException("이미 처리된 주문입니다.");
+		if (order.isNotPending())
+			throw new IllegalArgumentException("해당 주문은 처리될 수 없습니다.");
 
 		var tossResponse = tossPaymentsClient.confirm(
 				order.getUser().getIdempotencyKey().toString(),
@@ -232,6 +239,19 @@ public class PaymentServiceImpl implements PaymentService {
 	}
 
 	@Override
+	public boolean withdrawCard(byte cardId) {
+		Card card = cardRepository.findById(cardId).
+				orElseThrow(() -> new IllegalArgumentException("시스템에 등록되지 않은 카드입니다."));
+		int statusCode = tossPaymentsClient.deleteBillingKey(card.getUser().getIdempotencyKey().toString(),
+		                                                     card.getBillingKey()).value();
+		if (statusCode == 200) {
+			cardRepository.delete(card);
+			return true;
+		}
+		return false;
+	}
+
+	@Override
 	@Transactional(readOnly = true)
 	public Order retrieveOrder(String orderId) {
 		return findOrderOrElseThrow(orderId);
@@ -260,5 +280,15 @@ public class PaymentServiceImpl implements PaymentService {
 	private Payment findPaymentOrElseThrow(byte paymentId) {
 		return paymentRepository.findById(paymentId)
 		                        .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 지불 정보입니다."));
+	}
+
+	@Transactional
+	@Scheduled(fixedDelay = 60000) // 1분마다 실행
+	public void expireOrders() {
+		// PENDING 상태이면서 생성 시간이 10분 전인 주문들을 찾아서 EXPIRED로 변경
+		List<Order> expiredOrders = orderRepository.findAllByStatus(OrderStatusEnum.PENDING);
+		expiredOrders.stream()
+		             .filter(order -> order.getExpiredAt().isBefore(LocalDateTime.now()))
+		             .forEach(Order::expire);
 	}
 }

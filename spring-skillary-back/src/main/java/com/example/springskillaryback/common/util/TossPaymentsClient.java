@@ -3,6 +3,8 @@ package com.example.springskillaryback.common.util;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -17,6 +19,7 @@ public class TossPaymentsClient {
 	private final static String WITHDRAWAL_REQUEST_URL = "https://api.tosspayments.com/v1/payments/%s/cancel";
 	private final static String ISSUE_BILLING_URL = "https://api.tosspayments.com/v1/billing/authorizations/issue";
 	private final static String CONFIRM_BILLING_REQUEST_URL = "https://api.tosspayments.com/v1/billing/%s";
+	private final static String DELETE_BILLING_KEY_URL = "https://api.tosspayments.com/v1/billing/%s";
 
 	private final RestTemplate restTemplate;
 	private final String secretKey;
@@ -99,6 +102,19 @@ public class TossPaymentsClient {
 		);
 
 		return response.getBody();
+	}
+
+	public HttpStatusCode deleteBillingKey(String idempotencyKey, String billingKey) {
+		HttpHeaders headers = createHeaders(idempotencyKey);
+		HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+		ResponseEntity<JsonNode> response = restTemplate.exchange(
+				DELETE_BILLING_KEY_URL.formatted(billingKey),
+				HttpMethod.DELETE,
+				entity,
+				JsonNode.class
+		);
+		return response.getStatusCode();
 	}
 
 	private HttpHeaders createHeaders(String idempotencyKey) {

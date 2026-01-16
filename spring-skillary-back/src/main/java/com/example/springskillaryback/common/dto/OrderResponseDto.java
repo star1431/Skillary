@@ -8,14 +8,13 @@ public record OrderResponseDto(
 	String orderTitle,
 	String sellerName,
 	int amount,
-	String orderStaus,
+	String orderStatus,
 	String createdAt,
 	String expiredAt,
 	String creatorId,
 	boolean isPlan
 ) {
 	public static OrderResponseDto from(Order order) {
-		System.out.println("\n\n\n"+order+"\n\n\n");
 		if (order.getSubscriptionPlan() != null)
 			return new OrderResponseDto(order.getOrderId().toString(),
 			                            order.getSubscriptionPlan().getName(),

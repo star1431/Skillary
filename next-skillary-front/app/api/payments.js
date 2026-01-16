@@ -221,3 +221,14 @@ export async function restartOrder(
     null
   );
 }
+
+export async function withdrawCard(
+  cardId
+) {
+  return await baseRequest(
+    'DELETE',
+    {},
+    `/payments/card/${cardId}`,
+    null
+  );
+}

@@ -1,36 +1,36 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import useSWR from 'swr';
 import { useSearchParams } from 'next/navigation';
 import { singleOrder, confirmSinglePay, restartOrder } from '@/api/payments';
 
 export default function SingleOrderPage() {
   const searchParams = useSearchParams();
 
-  const [orderResponse, setOrderResponse] = useState(null);
   const orderId = searchParams.get('orderId');
   const contentId = searchParams.get('contentId');
-  const isFetched = useRef(false);
 
-  const fetchData = async () => {
-    if (isFetched.current) return;
+  const { data: orderResponse, error, isLoading } = useSWR(
+    // orderId나 contentId가 둘 다 없으면 아예 요청을 보내지 않음 (null)
+    (orderId || contentId) ? ['single-order', orderId, contentId] : null,
 
-    if (orderId) {
-      const res = await restartOrder(orderId);
-      console.log(res);
-      setOrderResponse(res);
-    } else {
-      setOrderResponse(await singleOrder(contentId));
+    async () => {
+      if (orderId) return await restartOrder(orderId);
+      if (contentId) return await singleOrder(contentId);
+      return null;
+    },
+    {
+      revalidateOnFocus: false, // 창을 다시 클릭했을 때 자동 호출 방지
+      shouldRetryOnError: false, // 에러 시 자동 재시도 방지
+      dedupingInterval: 2000,   // 2초 내에 발생하는 동일 요청은 무조건 1개로 합침
     }
-    isFetched.current = true;
-  };
+  );
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // 구독 플랜 또는 콘텐츠가 없으면 에러 표시
+  if (isLoading) return <div className="p-10 text-center">로딩 중...</div>;
 
-  if (!orderId && !contentId) {
+  if (!orderResponse) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -43,8 +43,6 @@ export default function SingleOrderPage() {
     );
   }
   
-  // 구독 플랜 또는 콘텐츠가 없으면 에러 표시
-  if (!orderResponse) return <div className="p-10 text-center">로딩 중...</div>;
 
   const handlePayment = async () => {
     try {

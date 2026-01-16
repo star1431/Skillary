@@ -21,7 +21,6 @@ export default function ContentDetailPage({ params }) {
   const creator = creators.find(c => c.name === content?.author);
 
   const singleOrderHandler = async () => {
-    console.log("hello");
     router.push(`/orders/single?contentId=${1}`); // test
   }
 

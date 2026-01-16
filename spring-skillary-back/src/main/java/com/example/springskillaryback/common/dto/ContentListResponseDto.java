@@ -10,6 +10,7 @@ public record ContentListResponseDto(
 		CategoryEnum category,
 		Byte creatorId,
 		String creatorName,
+		String profileImageUrl,
 		Byte planId,
 		Integer price,
 		String thumbnailUrl,

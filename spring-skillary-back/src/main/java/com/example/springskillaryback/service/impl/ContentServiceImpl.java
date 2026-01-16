@@ -401,6 +401,7 @@ public class ContentServiceImpl implements ContentService {
 			content.getCategory(),
 			creator.getCreatorId(),
 			creator.getDisplayName(),
+			creator.getProfile(),
 			content.getPlan() != null ? content.getPlan().getPlanId() : null,
 			content.getPrice(),
 			content.getThumbnailUrl(),

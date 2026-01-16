@@ -1,5 +1,6 @@
 package com.example.springskillaryback.service.impl;
 
+import com.example.springskillaryback.common.dto.ContentLikeResponseDto;
 import com.example.springskillaryback.common.dto.ContentListResponseDto;
 import com.example.springskillaryback.common.dto.ContentRequestDto;
 import com.example.springskillaryback.common.dto.ContentResponseDto;
@@ -31,10 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ContentServiceImpl implements ContentService {
 	private final ContentRepository contentRepository;
 	private final CreatorRepository creatorRepository;
@@ -45,9 +46,9 @@ public class ContentServiceImpl implements ContentService {
 
 	/** 콘텐츠 생성 */
 	@Override
-	public ContentResponseDto createContent(ContentRequestDto requestDto, Byte creatorId) {
-		Creator creator = creatorRepository.findById(creatorId)
-			.orElseThrow(() -> new IllegalArgumentException("크리에이터 없음"));
+	public ContentResponseDto createContent(ContentRequestDto requestDto, Byte userId) {
+		Creator creator = creatorRepository.findByUser_UserId(userId)
+			.orElseThrow(() -> new IllegalStateException("크리에이터 없음"));
 
 		// 구독, 단건 검증 처리
 		contentValid(requestDto.planId(), requestDto.price());
@@ -87,11 +88,14 @@ public class ContentServiceImpl implements ContentService {
 
 	/** 콘텐츠 수정 */
 	@Override
-	public ContentResponseDto updateContent(Byte contentId, ContentRequestDto requestDto, Byte creatorId) {
+	public ContentResponseDto updateContent(Byte contentId, ContentRequestDto requestDto, Byte userId) {
 		Content content = contentRepository.findByIdForDetail(contentId)
 			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
 
-		if (!content.getCreator().getCreatorId().equals(creatorId)) {
+		Creator creator = creatorRepository.findByUser_UserId(userId)
+			.orElseThrow(() -> new IllegalStateException("크리에이터 없음"));
+		
+		if (!content.getCreator().getCreatorId().equals(creator.getCreatorId())) {
 			throw new IllegalArgumentException("권한 없음");
 		}
 
@@ -117,7 +121,14 @@ public class ContentServiceImpl implements ContentService {
         if(requestDto.title() != null) content.setTitle(requestDto.title());
         if(requestDto.description() != null) content.setDescription(requestDto.description());
         if(requestDto.category() != null) content.setCategory(requestDto.category());
-        if(requestDto.thumbnailUrl() != null) content.setThumbnailUrl(requestDto.thumbnailUrl());
+        
+        // 썸네일 이미지 수정 시
+        if(requestDto.thumbnailUrl() != null && !requestDto.thumbnailUrl().equals(content.getThumbnailUrl())) {
+            if(fileService.isS3Url(content.getThumbnailUrl())) {
+                fileService.deleteFile(content.getThumbnailUrl());
+            }
+            content.setThumbnailUrl(requestDto.thumbnailUrl());
+        }
 
         // 본문 수정시
 		if (requestDto.post() != null) {
@@ -178,36 +189,47 @@ public class ContentServiceImpl implements ContentService {
 
 	/** 콘텐츠 상세 조회 (포스트, 댓글 포함) */
 	@Override
-	@Transactional // 콘텐츠 상세 조회할때 카운트로 쓰기로 변경
-	public ContentResponseDto getContent(Byte contentId, Byte creatorId) {
+	@Transactional(readOnly = true)
+	public ContentResponseDto getContent(Byte contentId, Byte userId) {
 		Content content = contentRepository.findByIdForDetail(contentId)
 			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
 		
-		// 조회수 증가
-		content.setViewCount(content.getViewCount() + 1);
-		contentRepository.save(content);
-		
 		// 현재 사용자가 콘텐츠 소유자인지 확인
 		boolean isOwner = false;
-        if(creatorId != null && content.getCreator().getCreatorId().equals(creatorId)) {
-            isOwner = true;
-        }
+		if (userId != null) {
+			Creator creator = creatorRepository.findByUser_UserId(userId).orElse(null);
+			if (creator != null && content.getCreator().getCreatorId().equals(creator.getCreatorId())) {
+				isOwner = true;
+			}
+		}
 		
 		return toDto(content, isOwner);
 	}
 
+	/** getContent에서 분리 - 조회수 증가 */
+	@Override
+	public void incrementViewCount(Byte contentId) {
+        Content content = contentRepository.findById(contentId)
+            .orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
+        content.setViewCount(content.getViewCount() + 1);
+        contentRepository.save(content);
+	}
+
 	/** 콘텐츠 삭제 */
 	@Override
-	public void deleteContent(Byte contentId, Byte creatorId) {
+	public void deleteContent(Byte contentId, Byte userId) {
 		Content content = contentRepository.findById(contentId)
 			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
 
-		if (!content.getCreator().getCreatorId().equals(creatorId)) {
+		Creator creator = creatorRepository.findByUser_UserId(userId)
+			.orElseThrow(() -> new IllegalStateException("크리에이터 없음"));
+		
+		if (!content.getCreator().getCreatorId().equals(creator.getCreatorId())) {
 			throw new IllegalArgumentException("권한 없음");
 		}
 
 		// 관련 파일 삭제 (S3)
-		deleteAssociatedFiles(content);
+        deleteAssociatedFiles(content);
 
 		// 콘텐츠 삭제
 		contentRepository.delete(content);
@@ -334,7 +356,7 @@ public class ContentServiceImpl implements ContentService {
 
 	/** 콘텐츠 좋아요 토글 */
 	@Override
-	public void toggleLike(Byte contentId, Byte userId) {
+	public ContentLikeResponseDto toggleLike(Byte contentId, Byte userId) {
 		Content content = contentRepository.findById(contentId)
 			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
 
@@ -343,12 +365,14 @@ public class ContentServiceImpl implements ContentService {
 
 		// 이미 눌렀는지 확인
 		boolean exists = contentLikeRepository.existsByContent_ContentIdAndUser_UserId(contentId, userId);
+		boolean isLiked;
 
 		if (exists) {
 			// Content의 likes 리스트에서 해당 좋아요를 찾아서 제거
 			content.getLikes().removeIf(like -> like.getUser().getUserId().equals(userId));
 			contentLikeRepository.deleteByContent_ContentIdAndUser_UserId(contentId, userId);
 			content.setLikeCount(content.getLikeCount() - 1);
+			isLiked = false;
 		} else {
 			ContentLike like = ContentLike.builder()
 				.content(content)
@@ -358,9 +382,12 @@ public class ContentServiceImpl implements ContentService {
 			// Content의 likes 리스트에 추가
 			content.getLikes().add(like);
 			content.setLikeCount(content.getLikeCount() + 1);
+			isLiked = true;
 		}
 
 		contentRepository.save(content);
+		
+		return new ContentLikeResponseDto(content.getLikeCount(), isLiked);
 	}
 
 	/** 리스트dto 변환 */

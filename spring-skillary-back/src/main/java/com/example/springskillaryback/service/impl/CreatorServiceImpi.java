@@ -6,6 +6,7 @@ import com.example.springskillaryback.domain.Creator;
 import com.example.springskillaryback.domain.Role;
 import com.example.springskillaryback.domain.RoleEnum;
 import com.example.springskillaryback.domain.User;
+import com.example.springskillaryback.repository.ContentRepository;
 import com.example.springskillaryback.repository.CreatorRepository;
 import com.example.springskillaryback.repository.RoleRepository;
 import com.example.springskillaryback.repository.UserRepository;
@@ -20,6 +21,7 @@ public class CreatorServiceImpi implements CreatorService {
     private final CreatorRepository creatorRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final ContentRepository contentRepository;
 
     @Override
     @Transactional
@@ -51,15 +53,27 @@ public class CreatorServiceImpi implements CreatorService {
         Creator c = creatorRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("크리에이터가 아닙니다"));
 
+        long contentCount = contentRepository.countByCreator_CreatorId(c.getCreatorId());
+
         return new MyCreatorResponse(
                 c.getCreatorId(),
-                c.getDisplayName(),
-                c.getIntroduction(),
                 c.getProfile(),
+                c.getUser() != null ? c.getUser().getNickname() : c.getDisplayName(),
+                c.getIntroduction(),
+                contentCount,
+                c.getFollowCount(),
                 c.getBankName(),
                 c.getAccountNumber(),
-                c.getFollowCount(),
+                c.getCreatedAt(),
                 c.isDeleted()
         );
+    }
+
+    @Transactional
+    public void updateCreator(Byte userId) {
+        Creator c = creatorRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("크리에이터가 아닙니다"));
+
+        
     }
 }

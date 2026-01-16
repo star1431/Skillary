@@ -1,11 +1,13 @@
 package com.example.springskillaryback.controller;
 
 import com.example.springskillaryback.common.dto.CreateCreatorRequest;
+import com.example.springskillaryback.common.dto.MyCreatorResponse;
 import com.example.springskillaryback.service.CreatorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,5 +29,11 @@ public class CreatorController {
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().header("X-Error-Message", e.getMessage()).build();
         }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MyCreatorResponse> getMyCreator(Authentication authentication) {
+        Byte userId = Byte.valueOf((String) authentication.getPrincipal());
+        return ResponseEntity.ok(creatorService.getMyCreator(userId));
     }
 }

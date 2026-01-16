@@ -32,6 +32,9 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
 	private String nickname;
 
+	@Setter
+    private String profile; // 프로필 사진
+
 	@CreationTimestamp
 	private LocalDateTime createdAt;
 

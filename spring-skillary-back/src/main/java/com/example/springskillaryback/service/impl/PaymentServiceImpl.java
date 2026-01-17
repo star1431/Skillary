@@ -308,4 +308,16 @@ public class PaymentServiceImpl implements PaymentService {
 		             .filter(order -> order.getExpiredAt().isBefore(LocalDateTime.now()))
 		             .forEach(Order::expire);
 	}
+
+	@Scheduled(cron = "0 0 3 * * *")
+	public void deleteExpiredOrders() {
+		log.info("만료된 주문 정보 삭제 작업을 시작합니다.");
+
+		try {
+			orderRepository.deleteByStatus(OrderStatusEnum.EXPIRED);
+			log.info("만료된 주문 삭제가 성공적으로 완료되었습니다.");
+		} catch (Exception e) {
+			log.error("주문 삭제 작업 중 오류가 발생했습니다: {}", e.getMessage());
+		}
+	}
 }

@@ -1,7 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { baseRequest } from '../../../api/api';
+import { InfoRow, PreviewImage } from './components';
+import {
+  apiCreateCreator,
+  apiGetMe,
+  apiGetMyCreator,
+  apiUpdateCreatorMe,
+  apiUpdateUserMe,
+  uploadProfileImage,
+} from './api';
+import { CreatorCreateForm, ProfileEditForm } from './forms';
+import { getRoleNames, hasCreatorRole } from './utils';
 
 /**
  * 마이페이지 "동작 테스트용" 페이지
@@ -14,51 +24,6 @@ import { baseRequest } from '../../../api/api';
  * 라우트:
  * - /auth/my-page/test  (app 폴더명은 URL에 포함되지 않음)
  */
-const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL;
-
-// Creator 생성(POST /api/creators)은 201 + body 없음이라 json 파싱을 피하려고 text/plain 사용
-const TEXT_HEADERS = { Accept: 'text/plain' };
-
-// 화면 출력용: null/undefined를 빈 문자열로 통일
-function asText(v) {
-  return String(v ?? '');
-}
-
-// roles 응답이 Role 객체 배열 형태라서 "ROLE_XXX" 문자열만 뽑아냄
-function getRoleNames(roles) {
-  if (!Array.isArray(roles)) return [];
-  return roles
-    .map((r) => (typeof r === 'string' ? r : r?.role))
-    .filter(Boolean);
-}
-
-// 크리에이터 권한 보유 여부
-function hasCreatorRole(roles) {
-  return getRoleNames(roles).includes('ROLE_CREATOR');
-}
-
-// profile URL이 있으면 img로 미리보기
-function PreviewImage({ src, alt }) {
-  if (!src) return null;
-  return (
-    <div style={{ marginTop: 8 }}>
-      <img
-        src={src}
-        alt={alt}
-        style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8 }}
-      />
-    </div>
-  );
-}
-
-// 간단 출력용 key/value 줄
-function InfoRow({ label, value }) {
-  return (
-    <div>
-      {label}: {asText(value)}
-    </div>
-  );
-}
 
 export default function MyPageTest() {
   // 공통 로딩/에러/데이터 상태
@@ -86,6 +51,18 @@ export default function MyPageTest() {
   // 프로필 이미지 업로드(S3) 전용 로딩
   const [uploading, setUploading] = useState(false);
 
+  // 크리에이터 보유 시 "수정 폼" 토글/상태
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editForm, setEditForm] = useState({
+    nickname: '',
+    profile: '',
+    introduction: '',
+    bankName: '',
+    accountNumber: '',
+  });
+  const [editError, setEditError] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+
   // 유저 권한(ROLE_CREATOR) 기반으로 크리에이터 보유 여부 판단
   const isCreator = useMemo(() => hasCreatorRole(user?.roles), [user?.roles]);
   const roleNames = useMemo(() => getRoleNames(user?.roles), [user?.roles]);
@@ -95,51 +72,9 @@ export default function MyPageTest() {
     setCreateForm((p) => ({ ...p, [key]: value }));
   }, []);
 
-  /**
-   * 프로필 이미지 업로드
-   * - 백엔드: POST /api/files/image (multipart/form-data)
-   * - 응답: 업로드된 파일의 URL(text/plain)
-   */
-  const uploadProfileImage = useCallback(async (file) => {
-    if (!API_URL) throw new Error('NEXT_PUBLIC_FRONT_API_URL이 설정되지 않았습니다.');
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const res = await fetch(`${API_URL}/api/files/image`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-
-    if (!res.ok) {
-      const msg = await res.text().catch(() => '');
-      throw new Error(msg || '이미지 업로드에 실패했습니다.');
-    }
-    return await res.text();
-  }, []);
-
-  // 유저 정보 조회: GET /api/users/me
-  const apiGetMe = useCallback(async () => {
-    return await baseRequest(
-      'GET',
-      {},
-      '/api/users/me',
-      null,
-      '유저 정보를 불러오지 못했습니다.',
-      true,
-    );
-  }, []);
-
-  // 내 크리에이터 정보 조회: GET /api/creators/me (크리에이터가 아닐 경우 4xx일 수 있음)
-  const apiGetMyCreator = useCallback(async () => {
-    return await baseRequest(
-      'GET',
-      {},
-      '/api/creators/me',
-      null,
-      '크리에이터 정보를 불러오지 못했습니다.',
-      true,
-    );
+  // editForm 업데이트 헬퍼
+  const setEditField = useCallback((key, value) => {
+    setEditForm((p) => ({ ...p, [key]: value }));
   }, []);
 
   /**
@@ -160,11 +95,31 @@ export default function MyPageTest() {
         nickname: me?.nickname ?? '',
         profile: me?.profile ?? '',
       }));
+      // 수정 폼에도 기본값 세팅 (크리에이터 여부와 무관하게 user 값으로 프리필)
+      setEditForm((p) => ({
+        ...p,
+        nickname: me?.nickname ?? '',
+        profile: me?.profile ?? '',
+        // 아래 3개는 creator 조회 성공 시 덮어씀 (없으면 빈 문자열 유지)
+        introduction: p.introduction ?? '',
+        bankName: p.bankName ?? '',
+        accountNumber: p.accountNumber ?? '',
+      }));
 
       if (hasCreatorRole(me?.roles)) {
         try {
           const c = await apiGetMyCreator();
           setCreator(c);
+
+          // 수정 폼에도 기본값 세팅 (닉네임/프로필은 user 기준으로 동기화됨)
+          setEditForm((p) => ({
+            ...p,
+            nickname: me?.nickname ?? '',
+            profile: me?.profile ?? '',
+            introduction: c?.introduction ?? '',
+            bankName: c?.bankName ?? '',
+            accountNumber: c?.accountNumber ?? '',
+          }));
         } catch {
           // ROLE은 있는데 creator 조회가 실패하는 케이스도 있음
           setCreator(null);
@@ -203,14 +158,7 @@ export default function MyPageTest() {
 
     if (Object.keys(payload).length === 0) return;
 
-    await baseRequest(
-      'PUT',
-      {},
-      '/api/users/me',
-      JSON.stringify(payload),
-      '유저 정보(닉네임/프로필) 수정에 실패했습니다.',
-      true,
-    );
+    await apiUpdateUserMe(payload);
   }, [createForm.nickname, createForm.profile, user?.nickname, user?.profile]);
 
   // 파일 선택 시: 업로드 → profile URL 세팅
@@ -231,7 +179,27 @@ export default function MyPageTest() {
         e.target.value = '';
       }
     },
-    [setCreateField, uploadProfileImage],
+    [setCreateField],
+  );
+
+  // (수정폼) 파일 선택 시: 업로드 → editForm.profile URL 세팅
+  const handleEditProfileFileChange = useCallback(
+    async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setEditError('');
+      setUploading(true);
+      try {
+        const url = await uploadProfileImage(file);
+        setEditField('profile', url);
+      } catch (err) {
+        setEditError(err?.message || '이미지 업로드 중 오류가 발생했습니다.');
+      } finally {
+        setUploading(false);
+        e.target.value = '';
+      }
+    },
+    [setEditField],
   );
 
   /**
@@ -250,19 +218,12 @@ export default function MyPageTest() {
 
       // 2) 크리에이터 생성
       const payload = {
-        introduction: createForm.introduction,
+        introduction: createForm.introduction || null,
         profile: createForm.profile || null,
         bankName: createForm.bankName || null,
         accountNumber: createForm.accountNumber || null,
       };
-      await baseRequest(
-        'POST',
-        TEXT_HEADERS, // 201 + body 없음 → json 파싱 방지
-        '/api/creators',
-        JSON.stringify(payload),
-        '크리에이터 생성에 실패했습니다.',
-        true,
-      );
+      await apiCreateCreator(payload);
       await refreshAll();
       setShowCreateForm(false);
       setMode('creator');
@@ -278,6 +239,52 @@ export default function MyPageTest() {
     createForm.profile,
     refreshAll,
     updateUserProfileAndNicknameIfNeeded,
+  ]);
+
+  /**
+   * 프로필 수정 저장(유저+크리에이터 동시 수정)
+   * - 크리에이터 없으면: PUT /api/users/me (nickname/profile만)
+   * - 크리에이터 있으면: PUT /api/creators/me (nickname/profile + introduction/bank/account)
+   */
+  const handleSaveProfile = useCallback(async (e) => {
+    e.preventDefault();
+    setEditError('');
+    setEditLoading(true);
+    try {
+      if (!isCreator) {
+        // 유저만일 때: nickname/profile만 저장
+        const payload = {
+          nickname: editForm.nickname,
+          profile: editForm.profile, // ""이면 제거(null 저장), null이면 변경 없음 - 백 정책
+        };
+        await apiUpdateUserMe(payload);
+      } else {
+        // 크리에이터일 때: 한 번에 같이 저장 (백에서 user <-> creator 동기화)
+        const payload = {
+          nickname: editForm.nickname,
+          profile: editForm.profile,
+          introduction: editForm.introduction || null,
+          bankName: editForm.bankName || null,
+          accountNumber: editForm.accountNumber || null,
+        };
+        await apiUpdateCreatorMe(payload);
+      }
+
+      await refreshAll();
+      setShowEditForm(false);
+    } catch (e2) {
+      setEditError(e2?.message || '프로필 수정 중 오류가 발생했습니다.');
+    } finally {
+      setEditLoading(false);
+    }
+  }, [
+    isCreator,
+    editForm.accountNumber,
+    editForm.bankName,
+    editForm.introduction,
+    editForm.nickname,
+    editForm.profile,
+    refreshAll,
   ]);
 
   return (
@@ -307,6 +314,29 @@ export default function MyPageTest() {
             크리에이터 생성
           </button>
         )}
+
+        {'  '}
+        {/* 프로필 수정 버튼: 유저만이어도 수정 가능 / 크리에이터면 같이 수정 */}
+        {user ? (
+          <button
+            onClick={() => {
+              // 수정은 유저 화면에서 진행(폼이 유저 화면에 있음)
+              setMode('user');
+              setEditError('');
+              setEditForm({
+                nickname: user?.nickname ?? '',
+                profile: user?.profile ?? '',
+                introduction: creator?.introduction ?? '',
+                bankName: creator?.bankName ?? '',
+                accountNumber: creator?.accountNumber ?? '',
+              });
+              setShowEditForm(true);
+            }}
+            disabled={loading || editLoading || uploading}
+          >
+            프로필 수정
+          </button>
+        ) : null}
       </div>
 
       {loading ? <p>로딩 중...</p> : null}
@@ -314,19 +344,41 @@ export default function MyPageTest() {
 
       <hr />
 
+      {/* 프로필 수정 폼이 열려있으면: 폼만 단독으로 표시 */}
+      {showEditForm ? (
+        <ProfileEditForm
+          userEmail={user?.email}
+          isCreator={isCreator}
+          uploading={uploading}
+          saving={editLoading}
+          error={editError}
+          form={editForm}
+          setField={setEditField}
+          onSubmit={handleSaveProfile}
+          onCancel={() => setShowEditForm(false)}
+          onProfileFileChange={handleEditProfileFileChange}
+        />
+      ) : null}
+
       {/* 개인 화면: 유저 정보 표시 */}
-      {mode === 'user' ? (
+      {!showEditForm && mode === 'user' ? (
         <>
           <h3>유저</h3>
           {user ? (
             <div>
               <InfoRow label="nickname" value={user.nickname} />
               <InfoRow label="email" value={user.email} />
-              <InfoRow label="subscribedCreatorCount" value={user.subscribedCreatorCount} />
-              <InfoRow label="createdAt" value={user.createdAt} />
-              <InfoRow label="roles" value={roleNames.join(', ')} />
               <InfoRow label="profile" value={user.profile} />
               <PreviewImage src={user.profile} alt="user profile" />
+
+              {/* 크리에이터가 있는 유저에게만 확장 정보 표시 */}
+              {isCreator ? (
+                <>
+                  <InfoRow label="subscribedCreatorCount" value={user.subscribedCreatorCount} />
+                  <InfoRow label="createdAt" value={user.createdAt} />
+                  <InfoRow label="roles" value={roleNames.join(', ')} />
+                </>
+              ) : null}
             </div>
           ) : (
             <p>유저 데이터 없음</p>
@@ -337,78 +389,18 @@ export default function MyPageTest() {
       <hr />
 
       {/* 크리에이터 미보유: 생성 폼 노출 */}
-      {!isCreator ? (
+      {!showEditForm && !isCreator ? (
         <>
           {showCreateForm ? (
-            <>
-              <h3>크리에이터 생성</h3>
-              <p>
-                아래에서 <b>닉네임/프로필</b>을 원하는 값으로 수정한 뒤, 같은 화면에서 크리에이터를 생성합니다.
-                (소개/은행명/계좌번호는 크리에이터 정보로 저장)
-              </p>
-
-              <form onSubmit={handleCreateCreator} style={{ display: 'grid', gap: 8, maxWidth: 480 }}>
-                <label>
-                  닉네임(nickname) - 수정 가능
-                  <input
-                    value={createForm.nickname}
-                    onChange={(e) => setCreateField('nickname', e.target.value)}
-                  />
-                </label>
-
-                <label>
-                  프로필 URL(profile) - 수정 가능
-                  <input
-                    value={createForm.profile}
-                    onChange={(e) => setCreateField('profile', e.target.value)}
-                  />
-                </label>
-
-                <label>
-                  프로필 이미지 업로드 (S3)
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={uploading}
-                    onChange={handleProfileFileChange}
-                  />
-                </label>
-
-                {createForm.profile ? <div>미리보기</div> : null}
-                <PreviewImage src={createForm.profile} alt="preview" />
-
-                <label>
-                  소개(introduction)
-                  <textarea
-                    value={createForm.introduction}
-                    onChange={(e) => setCreateField('introduction', e.target.value)}
-                    rows={3}
-                  />
-                </label>
-
-                <label>
-                  은행명(bankName)
-                  <input
-                    value={createForm.bankName}
-                    onChange={(e) => setCreateField('bankName', e.target.value)}
-                  />
-                </label>
-
-                <label>
-                  계좌번호(accountNumber)
-                  <input
-                    value={createForm.accountNumber}
-                    onChange={(e) => setCreateField('accountNumber', e.target.value)}
-                  />
-                </label>
-
-                {createError ? <p style={{ color: 'crimson' }}>{createError}</p> : null}
-
-                <button type="submit" disabled={createLoading}>
-                  {createLoading ? '생성 중...' : '크리에이터 생성'}
-                </button>
-              </form>
-            </>
+            <CreatorCreateForm
+              uploading={uploading}
+              creating={createLoading}
+              error={createError}
+              form={createForm}
+              setField={setCreateField}
+              onSubmit={handleCreateCreator}
+              onProfileFileChange={handleProfileFileChange}
+            />
           ) : (
             <p>상단의 “크리에이터 생성” 버튼을 눌러 생성 폼을 열어주세요.</p>
           )}
@@ -416,7 +408,7 @@ export default function MyPageTest() {
       ) : (
         <>
           {/* 크리에이터 보유: creator 화면에서만 크리에이터 정보 표시 */}
-          {mode === 'creator' ? (
+          {!showEditForm && mode === 'creator' ? (
             <>
               <h3>크리에이터</h3>
               {creator ? (
@@ -430,10 +422,6 @@ export default function MyPageTest() {
                   <InfoRow label="createdAt" value={creator.createdAt} />
                   <InfoRow label="isDeleted" value={creator.isDeleted} />
                   <PreviewImage src={creator.profile} alt="creator profile" />
-
-                  <div style={{ marginTop: 12 }}>
-                    <button disabled>프로필 수정(구현예정)</button>
-                  </div>
                 </div>
               ) : (
                 <p>크리에이터 데이터 없음 (또는 /api/creators/me 호출 실패)</p>

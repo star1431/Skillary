@@ -1,11 +1,10 @@
 package com.example.springskillaryback.common.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record CreateCreatorRequest(
-        @NotBlank
-        @Size(min = 1, max = 500)
+        // 선택: null 허용 (프론트에서 빈 값이면 null로 내려와도 OK)
+        @Size(max = 500)
         String introduction,
 
         String profile,        // 선택

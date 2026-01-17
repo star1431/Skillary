@@ -32,11 +32,13 @@ public class Creator {
 	private Byte creatorId;
 
 	@Column(length = 100, nullable = false, unique = true)
+	@Setter
 	private String displayName;
 
     @Setter
     private String introduction;
 
+	@Setter
 	private String profile; // url (사진)
 
     @Setter

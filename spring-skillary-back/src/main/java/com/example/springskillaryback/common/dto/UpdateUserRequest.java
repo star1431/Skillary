@@ -12,4 +12,4 @@ public record UpdateUserRequest(
         String nickname,
         String profile
 ) {}
-// TODO: 유저랑 크리에이터 같이 처리
+// TODO: 유저랑 크리에이터 같이 처리(UpdateCreatorRequest)

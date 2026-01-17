@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import jakarta.persistence.CascadeType;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -61,10 +62,9 @@ public class Creator {
 	@JoinColumn(name = "user_id", unique = true)
 	private User user;
 
-    @Builder.Default
-	@OneToMany(orphanRemoval = true)
-	@JoinColumn(name = "creator_id")
-	Set<SubscriptionPlan> plans = new HashSet<>();
+	@Builder.Default
+	@OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)
+	private Set<SubscriptionPlan> plans = new HashSet<>();
 
     @Builder.Default
 	@OneToMany(orphanRemoval = true)

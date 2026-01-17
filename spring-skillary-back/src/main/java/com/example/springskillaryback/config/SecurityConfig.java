@@ -29,7 +29,7 @@ public class SecurityConfig {
                         .requestMatchers("/error", "/api/auth/register", "/api/auth/login"
                                 , "/api/auth/send-confirm", "/api/auth/send-code"
                                 , "/api/auth/refresh", "/api/auth/logout", "/api/creators/profile/*",
-                                "/api/auth/check-nickname", "/api/contents/**"
+                                "/api/auth/check-nickname", "/api/contents/**", "/api/subscriptions/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

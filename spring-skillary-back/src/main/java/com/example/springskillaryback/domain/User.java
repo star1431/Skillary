@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Table(name = "users")
@@ -54,8 +55,7 @@ public class User {
     private Creator creator;
 
 	@Builder.Default
-	@OneToMany
-	@JoinColumn(name = "user_id")
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<Subscribe> subscribes = new HashSet<>();
 
 	@Builder.Default
@@ -68,4 +68,10 @@ public class User {
 	@JoinColumn(name = "user_id")
 	private List<Order> orders = new ArrayList<>();
 
+	public Optional<Subscribe> getSubscribe(byte planId) {
+		return subscribes.stream()
+		                 .filter(Subscribe::isActive)
+		                 .filter(subscribe -> subscribe.getSubscriptionPlan().getPlanId().equals(planId))
+		                 .findFirst();
+	}
 }

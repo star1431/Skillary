@@ -6,9 +6,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableJpaAuditing
 @Configuration
+@EnableScheduling // 스케줄링 추가
 @EnableConfigurationProperties({EmailVerificationProperties.class})
 public class AppConfig {
     @Bean

@@ -50,15 +50,15 @@ public class PaymentServiceImpl implements PaymentService {
 	private final CardRepository cardRepository;
 
 	@Override
-	public String getCustomerKey(String email) {
-		User user = findUserOrElseThrow(email);
+	public String getCustomerKey(Byte userId) {
+		User user = findUserOrElseThrow(userId);
 		return user.getCustomerKey()
 		           .toString();
 	}
 
 	@Override
-	public Card createCard(String email, String customerKey, String authKey) {
-		User user = findUserOrElseThrow(email);
+	public Card createCard(Byte userId, String customerKey, String authKey) {
+		User user = findUserOrElseThrow(userId);
 		if (!user.getCustomerKey()
 		         .toString()
 		         .equals(customerKey))
@@ -88,25 +88,25 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public Page<Card> pagingCards(String email, int page, int size) {
+	public Page<Card> pagingCards(Byte userId, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt")
 		                                                   .descending());
-		User user = findUserOrElseThrow(email);
+		User user = findUserOrElseThrow(userId);
 		return cardRepository.findAllByUser(user, pageable);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public Page<Order> pagingOrders(String email, int page, int size) {
-		User user = findUserOrElseThrow(email);
+	public Page<Order> pagingOrders(Byte userId, int page, int size) {
+		User user = findUserOrElseThrow(userId);
 		Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt")
 		                                                   .descending());
 		return orderRepository.findAllByUser(user, pageable);
 	}
 
 	@Override
-	public Order billingOrder(String email, byte planId) {
-		User user = findUserOrElseThrow(email);
+	public Order billingOrder(Byte userId, byte planId) {
+		User user = findUserOrElseThrow(userId);
 		SubscriptionPlan plan = findPlanOrElseThrow(planId);
 
 		if (user.isSubscribed(plan))
@@ -120,8 +120,8 @@ public class PaymentServiceImpl implements PaymentService {
 	}
 
 	@Override
-	public Order paymentOrder(String email, byte contentId) {
-		User user = findUserOrElseThrow(email);
+	public Order paymentOrder(Byte userId, byte contentId) {
+		User user = findUserOrElseThrow(userId);
 		Content content = findContentOrElseThrow(contentId);
 
 		if (user.hasContent(content))
@@ -135,9 +135,12 @@ public class PaymentServiceImpl implements PaymentService {
 	}
 
 	@Override
-	public Payment completeBilling(CompleteBillingRequestDto completeBillingRequestDto) {
+	public Payment completeBilling(
+			Byte userId,
+			CompleteBillingRequestDto completeBillingRequestDto
+	) {
 		Order order = findOrderOrElseThrow(completeBillingRequestDto.orderId());
-		User user = findUserOrElseThrow(completeBillingRequestDto.email());
+		User user = findUserOrElseThrow(userId);
 
 		if (
 				!order.isSamePrice(completeBillingRequestDto.subscriptionFee())
@@ -182,9 +185,12 @@ public class PaymentServiceImpl implements PaymentService {
 	}
 
 	@Override
-	public Payment completePayment(CompletePaymentRequestDto completePaymentRequestDto) {
+	public Payment completePayment(
+			Byte userId,
+			CompletePaymentRequestDto completePaymentRequestDto
+	) {
 		Order order = findOrderOrElseThrow(completePaymentRequestDto.orderId());
-		User user = findUserOrElseThrow(completePaymentRequestDto.email());
+		User user = findUserOrElseThrow(userId);
 
 		if (
 				!order.isSamePrice(completePaymentRequestDto.amount())
@@ -221,14 +227,21 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public Page<Payment> pagingPayments(String email, int page, int size) {
+	public Page<Payment> pagingPayments(
+			Byte userId,
+			int page,
+			int size
+	) {
 		Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 		return paymentRepository.findAll(pageable);
 	}
 
 	@Override
-	public void withdrawCard(String email, byte cardId) {
-		User user = findUserOrElseThrow(email);
+	public void withdrawCard(
+			Byte userId,
+			byte cardId
+	) {
+		User user = findUserOrElseThrow(userId);
 		Card card = cardRepository.findById(cardId)
 		                          .orElseThrow(() -> new IllegalArgumentException("시스템에 등록되지 않은 카드입니다."));
 
@@ -246,8 +259,11 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public Order retrieveOrder(String email, String orderId) {
-		User user = findUserOrElseThrow(email);
+	public Order retrieveOrder(
+			Byte userId,
+			String orderId
+	) {
+		User user = findUserOrElseThrow(userId);
 		Order order = findOrderOrElseThrow(orderId);
 		if (!order.isOwnedBy(user))
 			throw new IllegalArgumentException("주문자가 아닙니다.");
@@ -261,8 +277,8 @@ public class PaymentServiceImpl implements PaymentService {
 		                                 .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 플랜입니다."));
 	}
 
-	private User findUserOrElseThrow(String email) {
-		return userRepository.findByEmail(email)
+	private User findUserOrElseThrow(Byte userId) {
+		return userRepository.findById(userId)
 		                     .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 유저입니다."));
 	}
 

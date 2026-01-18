@@ -46,7 +46,7 @@ export default function CardListPage() {
   // 토스페이먼츠 빌링 인증 실행 함수
   const handleRegisterCard = async () => {
     try {
-      const customerKey = await getCustomerKey('email@email.com');
+      const customerKey = await getCustomerKey();
       await registerCard(customerKey);
     } catch (error) {
       console.log("카드 등록 중 오류:", error);

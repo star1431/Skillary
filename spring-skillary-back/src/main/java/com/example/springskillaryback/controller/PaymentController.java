@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,99 +32,111 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Objects;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/payments")
 public class PaymentController {
-	private static final String DEFAULT_USER_EMAIL = "email@email.com";
 	private final PaymentService paymentService;
 
 	@PostMapping("/customer-key")
 	public ResponseEntity<CustomerKeyResponseDto> getCustomerKey(
-			@RequestBody
-			String email
+			Authentication authentication
 	) {
-		String customerKey = paymentService.getCustomerKey(email);
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
+		String customerKey = paymentService.getCustomerKey(userId);
 		return ResponseEntity.ok(new CustomerKeyResponseDto(customerKey));
 	}
 
 	@PostMapping("/cards")
 	public ResponseEntity<Void> createCard(
+			Authentication authentication,
 			@Valid
 			@RequestBody
 			CardRequestDto cardRequestDto
 	) {
-		var email = cardRequestDto.email();
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
 		var customerKey = cardRequestDto.customerKey();
 		var authKey = cardRequestDto.authKey();
-		paymentService.createCard(email, customerKey, authKey);
+		paymentService.createCard(userId, customerKey, authKey);
 		return ResponseEntity.noContent()
 		                     .build();
 	}
 
 	@GetMapping("/cards")
 	public ResponseEntity<Page<CardResponseDto>> pagingCard(
+			Authentication authentication,
 			@RequestParam(defaultValue = "0") Integer page,
 			@RequestParam(defaultValue = "10") Integer size
 	) {
-		return ResponseEntity.ok(paymentService.pagingCards(DEFAULT_USER_EMAIL, page, size)
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
+		return ResponseEntity.ok(paymentService.pagingCards(userId, page, size)
 		                                       .map(CardResponseDto::from));
 	}
 
 	@GetMapping("/orders")
 	public ResponseEntity<Page<OrderResponseDto>> pagingOrders(
+			Authentication authentication,
 			@RequestParam(defaultValue = "0") Integer page,
 			@RequestParam(defaultValue = "10") Integer size
 	) {
-		return ResponseEntity.ok(paymentService.pagingOrders(DEFAULT_USER_EMAIL, page, size)
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
+		return ResponseEntity.ok(paymentService.pagingOrders(userId, page, size)
 		                                       .map(OrderResponseDto::from));
 	}
 
 	@PostMapping("/orders/payment")
 	public ResponseEntity<PaymentOrderResponseDto> paymentOrder(
+			Authentication authentication,
 			@Valid
 			@RequestBody
 			PaymentOrderRequestDto paymentOrderRequestDto
 	) {
-		var email = paymentOrderRequestDto.email();
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
 		var contentId = paymentOrderRequestDto.contentId();
-		var order = paymentService.paymentOrder(email, contentId);
+		var order = paymentService.paymentOrder(userId, contentId);
 		return ResponseEntity.status(HttpStatus.CREATED)
 		                     .body(PaymentOrderResponseDto.from(order));
 	}
 
 	@PostMapping("/orders/billing")
 	public ResponseEntity<PlanOrderResponseDto> billingOrder(
+			Authentication authentication,
 			@Valid
 			@RequestBody
 			BillingOrderRequestDto billingOrderRequestDto
 	) {
-		var email = billingOrderRequestDto.email();
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
 		var planId = billingOrderRequestDto.planId();
-		var order = paymentService.billingOrder(email, planId);
+		var order = paymentService.billingOrder(userId, planId);
 		return ResponseEntity.status(HttpStatus.CREATED)
 		                     .body(PlanOrderResponseDto.from(order));
 	}
 
 	@PostMapping("/complete/payment")
 	public ResponseEntity<CompletePaymentResponseDto> completePayment(
+			Authentication authentication,
 			@Valid
 			@RequestBody
 			CompletePaymentRequestDto completePaymentRequestDto
 	) {
-		Payment payment = paymentService.completePayment(completePaymentRequestDto);
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
+		Payment payment = paymentService.completePayment(userId, completePaymentRequestDto);
 		return ResponseEntity.status(HttpStatus.CREATED)
 		                     .body(CompletePaymentResponseDto.from(payment));
 	}
 
 	@PostMapping("/complete/billing")
 	public ResponseEntity<CompleteBillingResponseDto> completeBilling(
+			Authentication authentication,
 			@Valid
 			@RequestBody
 			CompleteBillingRequestDto completeBillingRequestDto
 	) {
-		Payment payment = paymentService.completeBilling(completeBillingRequestDto);
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
+		Payment payment = paymentService.completeBilling(userId, completeBillingRequestDto);
 
 		return ResponseEntity.status(HttpStatus.CREATED)
 		                     .body(CompleteBillingResponseDto.from(payment));
@@ -131,10 +144,12 @@ public class PaymentController {
 
 	@GetMapping
 	public ResponseEntity<Page<PaymentResponseDto>> pagingPayments(
+			Authentication authentication,
 			@RequestParam(defaultValue = "0") Integer page,
 			@RequestParam(defaultValue = "10") Integer size
 	) {
-		Page<PaymentResponseDto> response = paymentService.pagingPayments(DEFAULT_USER_EMAIL, page, size)
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
+		Page<PaymentResponseDto> response = paymentService.pagingPayments(userId, page, size)
 		                                                  .map(PaymentResponseDto::from);
 		return ResponseEntity.ok()
 		                     .body(response);
@@ -142,11 +157,13 @@ public class PaymentController {
 
 	@GetMapping("/{orderId}")
 	public ResponseEntity<?> retrieveOrder(
+			Authentication authentication,
 			@PathVariable String orderId
 	) {
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
 		if (orderId == null)
 			throw new IllegalArgumentException("주문 정보 입력 값이 없습니다.");
-		Order order = paymentService.retrieveOrder(DEFAULT_USER_EMAIL, orderId);
+		Order order = paymentService.retrieveOrder(userId, orderId);
 
 		if (order.isContent())
 			return ResponseEntity.ok(PaymentOrderResponseDto.from(order));
@@ -159,11 +176,13 @@ public class PaymentController {
 
 	@DeleteMapping("/card/{cardId}")
 	public ResponseEntity<Boolean> withdrawCard(
+			Authentication authentication,
 			@PathVariable Byte cardId
 	) {
+		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
 		if (cardId == null)
 			throw new IllegalArgumentException("입력값 오류");
-		paymentService.withdrawCard(DEFAULT_USER_EMAIL, cardId);
+		paymentService.withdrawCard(userId, cardId);
 		return ResponseEntity.noContent().build();
 	}
 }

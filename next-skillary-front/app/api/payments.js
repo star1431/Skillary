@@ -1,11 +1,11 @@
 import baseRequest from './api';
 
-export async function getCustomerKey(email) {
+export async function getCustomerKey() {
   return (await baseRequest(
     'POST',
     {},
     '/payments/customer-key',
-    email,
+    null,
     'customer key 를 가져오지 못했습니다.',
     true
   )).customerKey;
@@ -17,7 +17,6 @@ export async function paymentOrder(contentId) {
     {},
     '/payments/orders/payment',
     JSON.stringify({
-      email: 'email@email.com',
       contentId: contentId
     }),
     '주문 생성 중 오류가 발생했습니다.',
@@ -31,7 +30,6 @@ export async function billingOrder(planId) {
     {},
     '/payments/orders/billing',
     JSON.stringify({
-      email: 'email@email.com', // 임시
       planId: planId
     }),
     '주문 생성 중 오류가 발생했습니다.',
@@ -49,7 +47,6 @@ export async function createCard(
     {},
     `/payments/cards`,
     JSON.stringify({
-      email: 'email@email.com',
       customerKey: customerKey,
       authKey: authKey
     }),
@@ -87,7 +84,6 @@ export async function completeBilling({
     `/payments/complete/billing`,
     JSON.stringify({
       customerKey: customerKey,
-      email: 'email@email.com',
       orderId: orderId,
       planName: planName,
       subscriptionFee: subscriptionFee
@@ -113,7 +109,6 @@ export async function completePayment(
     {},
     `/payments/complete/payment`,
     JSON.stringify({
-      email: 'email@email.com',
       paymentKey: paymentKey,
       orderId: orderId,
       amount: amount
@@ -170,9 +165,9 @@ export async function withdrawCard(
     'DELETE',
     {},
     `/payments/card/${cardId}`,
-    JSON.stringify({
-      email: 'email@email.com'
-    })
+    null,
+    "카드 삭제에 실패했습니다.",
+    true
   );
   return res === null;
 }

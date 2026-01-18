@@ -8,28 +8,28 @@ import com.example.springskillaryback.domain.Payment;
 import org.springframework.data.domain.Page;
 
 public interface PaymentService {
-	String getCustomerKey(String email);
+	String getCustomerKey(Byte userId);
 
 	/* Card */
-	Card createCard(String email, String customerKey, String authKey);
+	Card createCard(Byte userId, String customerKey, String authKey);
 
-	Page<Card> pagingCards(String email, int page, int size);
+	Page<Card> pagingCards(Byte userId, int page, int size);
 
-	void withdrawCard(String email, byte cardId);
+	void withdrawCard(Byte userId, byte cardId);
 
 	/* Order */
-	Order paymentOrder(String email, byte contentId);
+	Order paymentOrder(Byte userId, byte contentId);
 
-	Order billingOrder(String email, byte planId);
+	Order billingOrder(Byte userId, byte planId);
 
-	Page<Order> pagingOrders(String email, int page, int size);
+	Page<Order> pagingOrders(Byte userId, int page, int size);
 
-	Order retrieveOrder(String email, String orderId);
+	Order retrieveOrder(Byte userId, String orderId);
 
 	/* Payment */
-	Page<Payment> pagingPayments(String email, int page, int size);
+	Page<Payment> pagingPayments(Byte userId, int page, int size);
 
-	Payment completeBilling(CompleteBillingRequestDto completeBillingRequestDto);
+	Payment completeBilling(Byte userId, CompleteBillingRequestDto completeBillingRequestDto);
 
-	Payment completePayment(CompletePaymentRequestDto completePaymentRequestDto);
+	Payment completePayment(Byte userId, CompletePaymentRequestDto completePaymentRequestDto);
 }

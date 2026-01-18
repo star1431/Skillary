@@ -28,7 +28,6 @@ import static jakarta.persistence.EnumType.STRING;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
 public class Order {
 	private static final int EXPIRATION_MINUTES = 10;
 
@@ -44,6 +43,7 @@ public class Order {
 	@Column(nullable = false)
 	private int amount;
 
+	@Builder.Default
 	@Enumerated(STRING)
 	@Column(nullable = false)
 	private OrderStatusEnum status = OrderStatusEnum.PENDING; // schema.sql DEFAULT 수정 필요

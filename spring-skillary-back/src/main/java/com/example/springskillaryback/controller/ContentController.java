@@ -1,17 +1,18 @@
 package com.example.springskillaryback.controller;
 
 import com.example.springskillaryback.common.dto.CategoryResponseDto;
+import com.example.springskillaryback.common.dto.ContentDeletePreviewDto;
+import com.example.springskillaryback.common.dto.ContentLikeResponseDto;
 import com.example.springskillaryback.common.dto.ContentListResponseDto;
 import com.example.springskillaryback.common.dto.ContentRequestDto;
 import com.example.springskillaryback.common.dto.ContentResponseDto;
-import com.example.springskillaryback.common.util.TokenUtil;
 import com.example.springskillaryback.domain.CategoryEnum;
 import com.example.springskillaryback.service.ContentService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -22,33 +23,36 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContentController {
 	private final ContentService contentService;
-	private final TokenUtil tokenUtil;
 
 	@PostMapping
 	public ResponseEntity<ContentResponseDto> createContent(
 		@RequestBody ContentRequestDto requestDto,
-		HttpServletRequest request
+		Authentication authentication
 	) {
-		Byte creatorId = tokenUtil.getCreatorIdFromToken(request);
-		if (creatorId == null) {
+		Byte userId = Byte.valueOf((String) authentication.getPrincipal());
+		try {
+			ContentResponseDto response = contentService.createContent(requestDto, userId);
+			return ResponseEntity.status(HttpStatus.CREATED).body(response); // 201
+		} catch (IllegalStateException e) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 크리에이터만 가능
 		}
-		ContentResponseDto response = contentService.createContent(requestDto, creatorId);
-		return ResponseEntity.status(HttpStatus.CREATED).body(response); // 201
 	}
 
 	@PutMapping("/{contentId}")
 	public ResponseEntity<ContentResponseDto> updateContent(
 		@PathVariable Byte contentId,
 		@RequestBody ContentRequestDto requestDto,
-		HttpServletRequest request
+		Authentication authentication
 	) {
-		Byte creatorId = tokenUtil.getCreatorIdFromToken(request);
-		if (creatorId == null) {
+		Byte userId = Byte.valueOf((String) authentication.getPrincipal());
+		try {
+			ContentResponseDto response = contentService.updateContent(contentId, requestDto, userId);
+			return ResponseEntity.ok(response); // 200
+		} catch (IllegalStateException e) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 크리에이터만 가능
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 권한 없음
 		}
-		ContentResponseDto response = contentService.updateContent(contentId, requestDto, creatorId);
-		return ResponseEntity.ok(response); // 200
 	}
 
 	/** 카테고리 목록 조회 */
@@ -70,7 +74,7 @@ public class ContentController {
 		return ResponseEntity.ok(contents); // 200
 	}
 
-	/** 인기 콘텐츠 목록 조회 (조회수 기준) */
+	/** 인기 콘텐츠 목록 조회 (라이크 기준) */
 	@GetMapping("/popular")
 	public ResponseEntity<Slice<ContentListResponseDto>> getPopularContents(
 		@RequestParam(defaultValue = "0") int page,
@@ -96,9 +100,10 @@ public class ContentController {
 	public ResponseEntity<Slice<ContentListResponseDto>> getContentsByCategory(
 		@PathVariable CategoryEnum category,
 		@RequestParam(defaultValue = "0") int page,
-		@RequestParam(defaultValue = "10") int size
+		@RequestParam(defaultValue = "10") int size,
+		@RequestParam(defaultValue = "latest") String sort
 	) {
-		Slice<ContentListResponseDto> contents = contentService.getContentsByCategory(category, page, size);
+		Slice<ContentListResponseDto> contents = contentService.getContentsByCategory(category, page, size, sort);
 		return ResponseEntity.ok(contents); // 200
 	}
 
@@ -106,41 +111,61 @@ public class ContentController {
 	@GetMapping("/{contentId}")
 	public ResponseEntity<ContentResponseDto> getContent(
             @PathVariable Byte contentId,
-            HttpServletRequest request
+            Authentication authentication
     ) {
-		Byte creatorId = tokenUtil.getCreatorIdFromToken(request);
-		ContentResponseDto content = contentService.getContent(contentId, creatorId);
+		contentService.incrementViewCount(contentId); // 조회수 증감 분리 적용
+		
+		Byte userId = null;
+		if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+			userId = Byte.valueOf((String) authentication.getPrincipal());
+		}
+		
+		ContentResponseDto content = contentService.getContent(contentId, userId);
 		return ResponseEntity.ok(content); // 200
+	}
+
+	@GetMapping("/{contentId}/delete-preview")
+	public ResponseEntity<ContentDeletePreviewDto> getDeletePreview(
+		@PathVariable Byte contentId,
+		Authentication authentication
+	) {
+		Byte userId = Byte.valueOf((String) authentication.getPrincipal());
+		try {
+			ContentDeletePreviewDto preview = contentService.getDeletePreview(contentId, userId);
+			return ResponseEntity.ok(preview); // 200
+		} catch (IllegalStateException e) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 크리에이터만 가능
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 권한 없음
+		}
 	}
 
 	@DeleteMapping("/{contentId}")
 	public ResponseEntity<Void> deleteContent(
 		@PathVariable Byte contentId,
-		HttpServletRequest request
+		Authentication authentication
 	) {
-		Byte creatorId = tokenUtil.getCreatorIdFromToken(request);
-		if (creatorId == null) {
+		Byte userId = Byte.valueOf((String) authentication.getPrincipal());
+		try {
+			// Content 삭제 (파일 삭제까지 포함하여 처리)
+			contentService.deleteContent(contentId, userId);
+			return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
+		} catch (IllegalStateException e) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 크리에이터만 가능
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 권한 없음
 		}
-
-		// Content 삭제 (파일 삭제까지 포함하여 처리)
-		contentService.deleteContent(contentId, creatorId);
-		
-		return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
 	}
 
 	/** 콘텐츠 좋아요 토글 */
 	@PostMapping("/{contentId}/like")
-	public ResponseEntity<Void> toggleLike(
+	public ResponseEntity<ContentLikeResponseDto> toggleLike(
 		@PathVariable Byte contentId,
-		HttpServletRequest request
+		Authentication authentication
 	) {
-		Byte userId = tokenUtil.getUserIdFromToken(request);
-		if (userId == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
-		}
-		contentService.toggleLike(contentId, userId);
-		return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
+		Byte userId = Byte.valueOf((String) authentication.getPrincipal());
+		ContentLikeResponseDto response = contentService.toggleLike(contentId, userId);
+		return ResponseEntity.ok(response); // 200
 	}
 }
 

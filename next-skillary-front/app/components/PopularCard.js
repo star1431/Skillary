@@ -31,6 +31,7 @@ export default function PopularCard({
   title, 
   description, 
   author, 
+  profileImageUrl,
   date, 
   badge, 
   badgeType, 
@@ -64,7 +65,7 @@ export default function PopularCard({
         </div>
       )}
       <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-start justify-between mb-2 gap-2">
+        <div className="flex items-center justify-between mb-2 gap-2">
           <h4 className="font-semibold text-black text-sm leading-tight flex-1 min-w-0">
             <span 
               className="block overflow-hidden"
@@ -97,7 +98,18 @@ export default function PopularCard({
         </p>
         <div className="mt-auto">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 rounded-full bg-gray-300 flex-shrink-0"></div>
+            {profileImageUrl && profileImageUrl.trim() !== '' ? (
+              <img 
+                src={profileImageUrl} 
+                alt={author || '크리에이터'}
+                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }}
+              />
+            ) : null}
+            <div className={`w-6 h-6 rounded-full bg-gray-300 flex-shrink-0 ${profileImageUrl && profileImageUrl.trim() !== '' ? 'hidden' : ''}`}></div>
             <span className="text-xs text-gray-600 break-words">{author}</span>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500 ml-8">

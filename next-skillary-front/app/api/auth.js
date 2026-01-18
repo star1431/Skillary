@@ -74,3 +74,15 @@ export async function logout() {
   );
   return true;
 }
+
+// 백엔드: GET /api/users/me (200, 현재 사용자 정보)
+export async function getCurrentUser() {
+  return await baseRequest(
+    'GET',
+    {},
+    '/users/me',
+    null,
+    '사용자 정보를 가져오는데 실패했습니다.',
+    true
+  )
+}

@@ -78,4 +78,7 @@ public class Content {
 	private Creator creator;
 
 	private String thumbnailUrl;
+
+    @Column(nullable = true)
+	private LocalDateTime deletedAt;
 }

@@ -124,8 +124,16 @@ public class CommentServiceImpl implements CommentService {
 			comment.setIsDeleted(true);
 			commentRepository.save(comment);
 		} else {
+            Comment parent = comment.getParent();
 			// 대댓글이 없는 경우: hard
 			commentRepository.delete(comment);
+            // 부모 댓글 soft삭제 상태 -> 자식 없는 경우 hard 진행
+            if(parent != null && parent.getIsDeleted()) {
+                long childLength = commentRepository.countByParentCommentId(parent.getCommentId());
+                if(childLength == 0) {
+                    commentRepository.delete(parent);
+                }
+            }
 		}
 	}
 

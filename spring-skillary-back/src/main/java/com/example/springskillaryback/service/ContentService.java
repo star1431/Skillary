@@ -1,15 +1,18 @@
 package com.example.springskillaryback.service;
 
+import org.springframework.data.domain.Slice;
+
+import com.example.springskillaryback.common.dto.ContentDeletePreviewDto;
+import com.example.springskillaryback.common.dto.ContentLikeResponseDto;
 import com.example.springskillaryback.common.dto.ContentListResponseDto;
 import com.example.springskillaryback.common.dto.ContentRequestDto;
 import com.example.springskillaryback.common.dto.ContentResponseDto;
 import com.example.springskillaryback.domain.CategoryEnum;
-import org.springframework.data.domain.Slice;
 
 public interface ContentService {
-	ContentResponseDto createContent(ContentRequestDto requestDto, Byte creatorId);
+	ContentResponseDto createContent(ContentRequestDto requestDto, Byte userId);
 	
-	ContentResponseDto updateContent(Byte contentId, ContentRequestDto requestDto, Byte creatorId);
+	ContentResponseDto updateContent(Byte contentId, ContentRequestDto requestDto, Byte userId);
 	
 	/** 콘텐츠 전체 목록 조회 (최신순) */
 	Slice<ContentListResponseDto> getContents(int page, int size);
@@ -21,14 +24,18 @@ public interface ContentService {
 	Slice<ContentListResponseDto> getContentsByCreator(Byte creatorId, int page, int size);
 	
 	/** 카테고리 기준 목록 조회 */
-	Slice<ContentListResponseDto> getContentsByCategory(CategoryEnum category, int page, int size);
+	Slice<ContentListResponseDto> getContentsByCategory(CategoryEnum category, int page, int size, String sort);
 	
 	/** 콘텐츠 상세 조회 (포스트, 댓글 포함) */
-	ContentResponseDto getContent(Byte contentId, Byte creatorId);
+	ContentResponseDto getContent(Byte contentId, Byte userId);
 	
-	void deleteContent(Byte contentId, Byte creatorId);
+	void incrementViewCount(Byte contentId);
+	
+	ContentDeletePreviewDto getDeletePreview(Byte contentId, Byte userId);
+	
+	void deleteContent(Byte contentId, Byte userId);
 	
 	/** 콘텐츠 좋아요 토글 */
-	void toggleLike(Byte contentId, Byte userId);
+	ContentLikeResponseDto toggleLike(Byte contentId, Byte userId);
 }
 

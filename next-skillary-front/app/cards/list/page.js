@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { billingAuth, pagingCard, getCustomerKey, withdrawCard } from '@/api/payments';
+import { pagingCard, getCustomerKey, withdrawCard } from '@/api/payments';
+import { registerCard } from '@/api/tossPayments';
 
 export default function CardListPage() {
   const [cards, setCards] = useState([]); // 실제 데이터 배열
@@ -12,7 +13,6 @@ export default function CardListPage() {
     try {
       setLoading(true);
       const response = await pagingCard(0, 10);
-      // Spring Page 객체 구조에서는 response.content 안에 데이터 배열이 들어있습니다.
       setCards(response.content || []);
     } catch (error) {
       console.log("결제 내역 로딩 실패:", error);
@@ -27,6 +27,7 @@ export default function CardListPage() {
 
   const handleWithdrawCard = async (cardId) => {
     try {
+      setLoading(true);
       const res = await withdrawCard(cardId);
       if (res) alert('삭제 완료');
       else alert('삭제 실패');
@@ -38,12 +39,12 @@ export default function CardListPage() {
   }
 
   // 토스페이먼츠 빌링 인증 실행 함수
-  const handleAddCard = async () => {
+  const handleRegisterCard = async () => {
     try {
       const customerKey = await getCustomerKey('email@email.com');
-      await billingAuth(customerKey);
+      await registerCard(customerKey);
     } catch (error) {
-      console.error("카드 등록 중 오류:", error);
+      console.log("카드 등록 중 오류:", error);
     } finally {
       fetchCards();
     }
@@ -134,7 +135,7 @@ export default function CardListPage() {
           ) : (
             /* 빈 상태 (Empty State) */
             <button 
-              onClick={handleAddCard}
+              onClick={handleRegisterCard}
               className="w-full bg-white border-2 border-dashed border-gray-200 rounded-3xl p-16 text-center hover:border-black hover:bg-gray-50 transition-all group"
             >
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-full mb-4 group-hover:scale-110 transition-transform">

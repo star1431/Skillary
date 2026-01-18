@@ -42,27 +42,6 @@ export async function planOrder(planId) {
   );
 }
 
-
-// 카드 등록
-export async function billingAuth(customerKey) {
-  const tossPayments = await loadTossPayments(clientKey);
-  if (!window.TossPayments)
-    throw new Error("토스페이먼츠 SDK가 로드되지 않았습니다.");
-  try {
-    const payment = tossPayments.payment({ customerKey });
-
-    return await payment.requestBillingAuth({
-      method: 'CARD',
-      successUrl: window.location.origin + '/cards/success',
-      failUrl: window.location.origin + '/cards/fail',
-      customerEmail: 'email@email.com',
-      customerName: '박성훈',
-    });
-  } catch (error) {
-    alert(error.message || "카드 등록 중 오류가 발생했습니다.");
-  }
-}
-
 export async function createCard(customerKey, authKey) {
   return await baseRequest(
     'POST',

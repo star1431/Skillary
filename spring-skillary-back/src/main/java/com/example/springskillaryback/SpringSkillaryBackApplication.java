@@ -18,47 +18,7 @@ import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class SpringSkillaryBackApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(SpringSkillaryBackApplication.class, args);
-	}
-
-
-	@Bean
-	public CommandLineRunner cml(
-			SubscriptionPlanRepository subscriptionPlanRepository,
-			CreatorRepository creatorRepository,
-			UserRepository userRepository,
-			ContentRepository contentRepository,
-			PostRepository postRepository
-	) {
-		return args -> {
-			var user = userRepository.save(User.builder()
-					                    .email("email@email.com")
-					                    .password("1234")
-					                    .nickname("hello").build());
-			var creator = creatorRepository.save(Creator.builder()
-					                       .displayName("테스트 이름")
-					                       .user(user)
-					                       .build());
-			var subscriptionPlan = subscriptionPlanRepository.save(SubscriptionPlan.builder()
-					                                .name("테스트")
-					                                .price(100)
-													.description("test")
-					                                .creator(creator)
-					                                .build());
-			var post = postRepository.save(Post.builder()
-					                               .url("http://test.com")
-					                               .body("본문 입니다.")
-					                               .creator(creator)
-					                               .build());
-			var content = contentRepository.save(Content.builder()
-					                                     .title("컨텐트 테스트")
-					                                     .price(1000)
-					                                     .post(post)
-					                                     .creator(creator)
-					                                     .category(CategoryEnum.IT)
-					                                     .build());
-		};
 	}
 }

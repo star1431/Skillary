@@ -1,0 +1,16 @@
+@access=eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJ0ZXN0QGRlbW8uY29tIiwiaWF0IjoxNzY4MjM0Njc0LCJleHAiOjE3NjgyMzY0NzR9.6vm_0Ymrz0SfeAChy5-kevY02R8M0TAEjFdVLSi8xhPjRQkbJGgoTT1wnIB2S3vp
+### 로그인 (AT 쿠키 발급 + RT DB 저장)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@demo.com",
+  "password": "1234"
+}
+
+### 리프레시 (만료된 AT에서 userId 추출 → RT 유효 확인 → AT 쿠키 재발급)
+POST http://localhost:8080/api/auth/refresh
+Cookie: accessToken={{access}}
+
+### 로그아웃 (AT에서 userId 추출 → RT DB 삭제 → AT 쿠키 삭제)
+POST http://localhost:8080/api/auth/logout

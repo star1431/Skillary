@@ -9,17 +9,24 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static jakarta.persistence.EnumType.STRING;
 
-@Entity
 @Table(name = "orders")
+@Entity
+@Builder
+@Getter
+@AllArgsConstructor
 @NoArgsConstructor
 @Getter
 public class Order {
@@ -55,7 +62,8 @@ public class Order {
 	private SubscriptionPlan subscriptionPlan;
 
 	@ManyToOne
-	@JoinColumn(name = "content_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL) // 스케줄러 유료콘텐츠 삭제시 필요
+    @JoinColumn(name = "content_id")
 	private Content content;
 
 	@OneToOne(mappedBy = "order")

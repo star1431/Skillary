@@ -1,12 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import Alert from './Alert';
+import { silentRefresh, logout as apiLogout } from '../api/auth';
 
 export default function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  // 요구사항: 비로그인 상태라면 로그인/회원가입만 보여야 함
+  // → 초기값을 false(비로그인)로 두고, refresh 성공 시에만 true로 전환
+  const [isAuthed, setIsAuthed] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -25,22 +32,33 @@ export default function Header() {
     };
   }, [isDropdownOpen]);
 
+  useEffect(() => {
+    // httpOnly 쿠키라 FE에서 직접 확인 불가 → refresh로 로그인 여부 판별(201=로그인, 401=비로그인)
+    const check = async () => {
+      // 로그인/회원가입 페이지는 공개 페이지 → 로그인 체크 요청 자체를 보내지 않음
+      if (pathname === '/auth/login' || pathname === '/auth/register') {
+        setIsAuthed(false);
+        return;
+      }
+      const ok = await silentRefresh();
+      setIsAuthed(ok);
+    };
+    check();
+  }, [pathname]);
+
   const handleToggleDropdown = () => {
-    // TODO: 드롭다운 토글 로직 구현
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleLogin = () => {
-    // TODO: 로그인 로직 구현
-  };
-
-  const handleSignup = () => {
-    // TODO: 회원가입 로직 구현
-  };
-
-  const handleLogout = () => {
-    // TODO: 로그아웃 로직 구현
-    console.log('로그아웃');
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+    } finally {
+      setIsAuthed(false);
+      setIsAlertOpen(false);
+      setIsDropdownOpen(false);
+      router.replace('/');
+    }
   };
 
   const handleToggleAlert = () => {
@@ -73,20 +91,22 @@ export default function Header() {
               </Link>
             </nav>
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <button
-                  onClick={() => handleToggleAlert()}
-                  className="text-gray-700 hover:text-black transition relative"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  {isAlertOpen && (
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
-                  )}
-                </button>
-                <Alert isOpen={isAlertOpen} onClose={handleCloseAlert} />
-              </div>
+              {isAuthed && (
+                <div className="relative">
+                  <button
+                    onClick={() => handleToggleAlert()}
+                    className="text-gray-700 hover:text-black transition relative"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    {isAlertOpen && (
+                      <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
+                    )}
+                  </button>
+                  <Alert isOpen={isAlertOpen} onClose={handleCloseAlert} />
+                </div>
+              )}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => {
@@ -103,34 +123,42 @@ export default function Header() {
                 </button>
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <Link
-                      href="/auth/login"
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      로그인
-                    </Link>
-                    <Link
-                      href="/auth/register"
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      회원가입
-                    </Link>
-                    <div className="border-t border-gray-200 my-1"></div>
-                    <Link
-                      href="/auth/my-page"
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      마이페이지
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      로그아웃
-                    </button>
+                    {isAuthed ? (
+                      <>
+                        <Link
+                          href="/auth/my-page"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          마이페이지
+                        </Link>
+                        <button
+                          onClick={async () => {
+                            await handleLogout();
+                          }}
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                        >
+                          로그아웃
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/auth/login"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          로그인
+                        </Link>
+                        <Link
+                          href="/auth/register"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          회원가입
+                        </Link>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

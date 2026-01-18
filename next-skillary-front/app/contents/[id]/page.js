@@ -1,93 +1,192 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getContent, deleteContent } from '../../api/contents';
 import { popularContents } from '../../components/popularContentsData';
-import { creators } from '../../creators/components/data';
+import { getCurrentUser } from '../../api/auth';
+import ContentHead from './components/ContentHead';
+import ContentBody from './components/ContentBody';
+import CommentSection from './components/CommentSection';
 
 
 export default function ContentDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
-  const content = popularContents.find(item => item.id === parseInt(id));
+  const [content, setContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // 현재 사용자 정보 (토큰 기반 인증)
+  const [currentUserId, setCurrentUserId] = useState(null); // 로그인한 사용자 ID (null이면 비로그인)
+  
+  // [TODO] 실제 API에서 구독/구매 여부 확인 필요
+  const [isSubscribed, setIsSubscribed] = useState(false); // 실제 구독 여부 확인
+  const [isPurchased, setIsPurchased] = useState(false); // 실제 구매 여부 확인
 
-  // 임시: 현재 사용자가 작성자인지 확인 (실제로는 인증 정보에서 가져와야 함)
-  const [currentUser] = useState('테크 인사이트'); // 임시 사용자
-  const isOwner = content && content.author === currentUser;
+  // 콘텐츠 상세 정보 로드
+  useEffect(() => {
+    async function loadContent() {
+      const contentId = parseInt(id);
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // 실제 데이터를 먼저 시도 (모든 contentId에 대해)
+        const data = await getContent(contentId);
+        setContent(data);
+        
+        // 토큰 기반 인증으로 현재 사용자 정보 가져오기
+        try {
+          const userInfo = await getCurrentUser();
+          if (userInfo) {
+            setCurrentUserId(userInfo.userId);
+          }
+        } catch (err) {
+          // 인증 정보 가져오기 실패 시 비로그인 상태로 처리
+          setCurrentUserId(null);
+        }
+      } catch (err) {
+        // 실제 데이터가 없을 때 목업 데이터 사용
+        console.log(`콘텐츠 ${contentId} 실제 데이터 없음, 목업 데이터 사용`);
+        const fallbackContent = popularContents.find(item => item.id === contentId) || popularContents[0];
+        if (fallbackContent) {
+          const convertedContent = {
+            contentId: fallbackContent.id,
+            title: fallbackContent.title,
+            description: fallbackContent.description,
+            creatorName: fallbackContent.author,
+            createdAt: new Date().toISOString(),
+            thumbnailUrl: null,
+            category: fallbackContent.category || 'ETC',
+            planId: fallbackContent.badgeType === 'badge' && fallbackContent.badge === '구독자 전용' ? 1 : null,
+            price: fallbackContent.badgeType === 'price' ? parseInt(fallbackContent.price?.replace(/[^0-9]/g, '') || '0') : null,
+            viewCount: 0,
+            likeCount: 0,
+            creatorId: 1,
+            post: {
+              body: fallbackContent.body || `### ${fallbackContent.title}\n\n${fallbackContent.description}`,
+              postFiles: []
+            }
+          };
+          setContent(convertedContent);
+          setError(null);
+        } else {
+          setError('콘텐츠를 찾을 수 없습니다.');
+        }
+      }
+      
+      // [TODO] 실제 API에서 구독/구매 여부 확인 필요
+      // 예: setIsSubscribed(await checkSubscription(data.planId, currentUserId));
+      // 예: setIsPurchased(await checkPurchase(data.contentId, currentUserId));
+      
+      setLoading(false);
+    }
+    loadContent();
+  }, [id]);
 
-  // 크리에이터 정보 찾기
-  const creator = creators.find(c => c.name === content?.author);
+  // 현재 사용자 정보 가져오기 (토큰 기반 인증)
+  useEffect(() => {
+    async function loadCurrentUser() {
+      try {
+        const userInfo = await getCurrentUser();
+        if (userInfo) {
+          setCurrentUserId(userInfo.userId);
+        }
+      } catch (err) {
+        // 인증 정보 가져오기 실패 시 비로그인 상태로 처리
+        setCurrentUserId(null);
+      }
+    }
+    loadCurrentUser();
+  }, []);
 
-  if (!content) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-black mb-4">콘텐츠를 찾을 수 없습니다</h1>
-          <Link href="/contents" className="text-blue-600 hover:underline">
-            콘텐츠 목록으로 돌아가기
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // 로그인 여부 확인
+  const isLoggedIn = currentUserId !== null;
+  
+  // 크리에이터 본인 여부 확인 (백엔드에서 isOwner로 반환)
+  const isOwner = content?.isOwner || false;
+  
+  // 유료 콘텐츠 여부
+  const isPaidContent = content?.planId || content?.price;
+  
+  // 콘텐츠 사용 권한 (본문 / 댓글)
+  // - 무료 : 비로그인도 허용
+  // - 구독 : 작성자 + 구독자
+  // - 단건 : 작성자 + 결제자
+  const canViewContent = isOwner || 
+                         !isPaidContent || 
+                         (isLoggedIn && content?.planId && isSubscribed) || 
+                         (isLoggedIn && content?.price && isPurchased);
 
+  const canComment = isOwner || 
+                     (isLoggedIn && (
+                       !isPaidContent || 
+                       (content?.planId && isSubscribed) || 
+                       (content?.price && isPurchased)
+                     ));
+
+  // 수정 페이지로 이동
   const handleEdit = () => {
-    // 수정 페이지로 이동 (크리에이터의 create 페이지를 수정 모드로 사용)
-    if (creator) {
-      router.push(`/creators/${creator.id}/create?edit=true&contentId=${content.id}`);
+    if (content && content.creatorId) {
+      router.push(`/creators/${content.creatorId}/create?edit=true&contentId=${id}`);
     }
   };
 
+  // 콘텐츠 삭제
+  const handleDelete = async () => {
+    if (!confirm('콘텐츠를 삭제하시겠습니까?')) return;
+
+    try {
+      await deleteContent(parseInt(id));
+      router.push('/contents');
+    } catch (err) {
+      console.error('콘텐츠 삭제 실패:', err);
+      alert('콘텐츠 삭제에 실패했습니다: ' + err.message);
+    }
+  };
+
+  // 배지 정보 계산
+  const badgeInfo = content?.planId 
+    ? { type: 'badge', text: '구독자 전용' }
+    : content?.price 
+    ? { type: 'price', text: `₩${content.price.toLocaleString()}` }
+    : { type: 'badge', text: '무료' };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 섹션 */}
-        <div className="mb-8">
-          <div className={`aspect-video bg-gradient-to-br ${content.gradientFrom} ${content.gradientTo} rounded-lg flex items-center justify-center mb-6`}>
-            <div className="text-8xl">{content.emoji}</div>
-          </div>
-          
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-black mb-4">{content.title}</h1>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-gray-300"></div>
-                  <span className="text-gray-700 font-medium">{content.author}</span>
-                </div>
-                <span className="text-gray-500">{content.date}</span>
-              </div>
-            </div>
-            {content.badge && (
-              <span className={`ml-4 flex-shrink-0 ${content.badgeType === 'price' ? 'text-black text-lg font-semibold' : 'bg-black text-white text-sm px-4 py-2 rounded'}`}>
-                {content.badgeType === 'price' ? content.price : content.badge}
-              </span>
-            )}
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            <p className="text-gray-600">콘텐츠를 불러오는 중...</p>
           </div>
         </div>
+      ) : error || !content ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-black mb-4">콘텐츠를 찾을 수 없습니다</h1>
+            <Link href="/contents" className="text-blue-600 hover:underline">
+              콘텐츠 목록으로 돌아가기
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* 헤더 섹션 */}
+          <ContentHead
+            content={content}
+            canViewContent={canViewContent}
+            isLoggedIn={isLoggedIn}
+          />
 
-        {/* 콘텐츠 본문 */}
-        <div className="bg-white rounded-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-black mb-4">콘텐츠 소개</h2>
-          <p className="text-gray-700 leading-relaxed mb-6">{content.description}</p>
-          
-          {/* 임시 콘텐츠 본문 */}
-          <div className="prose max-w-none">
-            <p className="text-gray-700 leading-relaxed mb-4">
-              이 콘텐츠는 전문가의 지식과 노하우를 담은 고품질 자료입니다. 
-              실무에 바로 적용할 수 있는 실용적인 정보와 최신 트렌드를 제공합니다.
-            </p>
-            <p className="text-gray-700 leading-relaxed mb-4">
-              각 섹션별로 상세한 설명과 예제를 통해 이해도를 높이고, 
-              실제 프로젝트에 활용할 수 있는 팁과 노하우를 공유합니다.
-            </p>
-            <p className="text-gray-700 leading-relaxed">
-              지속적인 업데이트를 통해 최신 정보를 제공하며, 
-              구독자 여러분의 성장을 지원합니다.
-            </p>
-          </div>
-        </div>
+          {/* 콘텐츠 본문 */}
+          <ContentBody
+            content={content}
+            canViewContent={canViewContent}
+          />
 
         {/* 액션 버튼 */}
         <div className="flex gap-4">
@@ -120,8 +219,16 @@ export default function ContentDetailPage({ params }) {
               콘텐츠 보기
             </button>
           )}
+          {/* 댓글 섹션 */}
+          <CommentSection
+            contentId={id}
+            canComment={canComment}
+            isLoggedIn={isLoggedIn}
+            currentUserId={currentUserId}
+            contentCreatorId={content?.creatorId}
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,51 +1,47 @@
 export const popularContents = [
   {
     id: 1,
-    title: 'React 19 새로운 기능 완벽 가이드',
-    description: 'React 19의 주요 변경사항을 간단히 소개합니다.',
+    title: 'React 19 새로운 기능 완벽 가이드 (목업)',
+    description: 'React 19의 주요 변경사항과 새로운 기능들을 상세히 설명합니다.',
     author: '테크 인사이트',
-    date: '2025. 1. 8.',
+    date: '2026. 1. 15.',
     badge: '무료',
     badgeType: 'badge',
-    emoji: '⚛️',
-    gradientFrom: 'from-blue-100',
-    gradientTo: 'to-blue-200'
+    category: 'IT',
+    body: '### React 19 새로운 기능\n\nReact 19의 주요 변경사항과 새로운 기능들을 상세히 설명합니다.'
   },
   {
     id: 2,
-    title: 'TypeScript 고급 패턴: 타입 안전성 극대화',
-    description: '타입스크립트 기초를 넘어선 고급 패턴을 배워보세요.',
+    title: 'TypeScript 고급 패턴: 타입 안전성 극대화 (목업)',
+    description: '타입스크립트의 고급 타입 시스템과 패턴을 활용하여 더 안전한 코드를 작성하는 방법을 배웁니다.',
     author: '테크 인사이트',
-    date: '2025. 1. 7.',
+    date: '2026. 1. 15.',
     badge: '구독자 전용',
     badgeType: 'badge',
-    emoji: '📘',
-    gradientFrom: 'from-blue-100',
-    gradientTo: 'to-blue-200'
+    category: 'IT',
+    body: '### TypeScript 고급 패턴\n\n타입스크립트의 고급 타입 시스템과 패턴을 활용하여 더 안전한 코드를 작성하는 방법을 배웁니다.'
   },
   {
     id: 3,
-    title: '시스템 아키텍처 설계 실전 케이스',
-    description: '시스템 설계의 핵심 개념을 알아봅니다.',
+    title: '시스템 아키텍처 설계 실전 케이스 (목업)',
+    description: '대규모 시스템을 설계할 때 고려해야 할 아키텍처 패턴과 실전 경험을 공유합니다.',
     author: '테크 인사이트',
-    date: '2025. 1. 6.',
-    badge: '₩5,000',
-    badgeType: 'price',
+    date: '2026. 1. 15.',
     price: '₩5,000',
-    emoji: '🖥️',
-    gradientFrom: 'from-gray-100',
-    gradientTo: 'to-gray-200'
+    badgeType: 'price',
+    category: 'IT',
+    body: '### 시스템 아키텍처 설계\n\n대규모 시스템을 설계할 때 고려해야 할 아키텍처 패턴과 실전 경험을 공유합니다.'
   },
   {
     id: 4,
-    title: 'UI/UX 디자인 시스템 구축하기',
-    description: '디자인 시스템의 기본 개념과 중요성',
+    title: 'UI/UX 디자인 시스템 구축하기 (목업)',
+    description: '확장 가능하고 일관성 있는 디자인 시스템을 구축하는 방법을 단계별로 안내합니다.',
     author: '디자인 스튜디오',
-    date: '2025. 1. 5.',
-    badge: '구독자 전용',
+    date: '2026. 1. 15.',
+    badge: '무료',
     badgeType: 'badge',
-    emoji: '🎨',
-    gradientFrom: 'from-green-100',
-    gradientTo: 'to-green-200'
+    category: 'ART',
+    body: '### UI/UX 디자인 시스템\n\n확장 가능하고 일관성 있는 디자인 시스템을 구축하는 방법을 단계별로 안내합니다.'
   }
 ];
+

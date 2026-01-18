@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, use, useEffect, useRef } from 'react';
 import { creators } from '../components/data';
-import { popularContents } from '../../components/popularContentsData';
 import PopularCard from '../../components/PopularCard';
 import { requstPaymentOrder } from '@/api/orders';
+import { getContentsByCreator } from '../../api/contents';
 
 export default function CreatorProfilePage({ params }) {
   const { id } = use(params);
@@ -32,8 +32,55 @@ export default function CreatorProfilePage({ params }) {
     );
   }
 
-  // 해당 크리에이터의 콘텐츠 필터링
-  const creatorContents = popularContents.filter(content => content.author === creator.name);
+  const [creatorContents, setCreatorContents] = useState([]);
+  const [loadingContents, setLoadingContents] = useState(true);
+
+  // 크리에이터의 콘텐츠 로드
+  useEffect(() => {
+    async function loadCreatorContents() {
+      if (!creator) return;
+      
+      setLoadingContents(true);
+      try {
+        const data = await getContentsByCreator(creator.id, 0, 20);
+        const apiContents = data.content || [];
+        setCreatorContents(apiContents);
+      } catch (err) {
+        console.error('크리에이터 콘텐츠 로드 실패:', err);
+        setCreatorContents([]);
+      } finally {
+        setLoadingContents(false);
+      }
+    }
+    loadCreatorContents();
+  }, [creator]);
+
+  // 날짜 포맷팅
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${year}. ${month}. ${day}.`;
+  };
+
+  // 가격 포맷팅
+  const formatPrice = (price) => {
+    if (!price) return null;
+    return `₩${price.toLocaleString()}`;
+  };
+
+  // 배지 타입 결정
+  const getBadgeInfo = (content) => {
+    if (content.planId) {
+      return { type: 'badge', text: '구독자 전용' };
+    } else if (content.price) {
+      return { type: 'price', text: formatPrice(content.price) };
+    } else {
+      return { type: 'badge', text: '무료' };
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -168,24 +215,33 @@ export default function CreatorProfilePage({ params }) {
           </button>
         </div>
 
-        {creatorContents.length > 0 ? (
+        {loadingContents ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-black"></div>
+          </div>
+        ) : creatorContents.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {creatorContents.map((content) => (
-              <PopularCard
-                key={content.id}
-                id={content.id}
-                title={content.title}
-                description={content.description}
-                author={content.author}
-                date={content.date}
-                badge={content.badge}
-                badgeType={content.badgeType}
-                price={content.price}
-                emoji={content.emoji}
-                gradientFrom={content.gradientFrom}
-                gradientTo={content.gradientTo}
-              />
-            ))}
+            {creatorContents.map((content) => {
+              const badgeInfo = getBadgeInfo(content);
+              return (
+                <PopularCard
+                  key={content.contentId}
+                  id={content.contentId}
+                  title={content.title}
+                  description={content.description}
+                  author={content.creatorName}
+                  profileImageUrl={content.profileImageUrl}
+                  date={formatDate(content.createdAt)}
+                  badge={badgeInfo.text}
+                  badgeType={badgeInfo.type}
+                  price={badgeInfo.type === 'price' ? badgeInfo.text : null}
+                  thumbnailUrl={content.thumbnailUrl}
+                  category={content.category}
+                  viewCount={content.viewCount || 0}
+                  likeCount={content.likeCount || 0}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="bg-gray-50 rounded-lg p-16 text-center">

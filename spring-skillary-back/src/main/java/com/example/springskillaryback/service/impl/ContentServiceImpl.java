@@ -240,6 +240,42 @@ public class ContentServiceImpl implements ContentService {
         contentRepository.save(content);
 	}
 
+    /** 콘텐츠 좋아요 토글 */
+    @Override
+    public ContentLikeResponseDto toggleLike(Byte contentId, Byte userId) {
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+        // 이미 눌렀는지 확인
+        boolean exists = contentLikeRepository.existsByContent_ContentIdAndUser_UserId(contentId, userId);
+        boolean isLiked;
+
+        if (exists) {
+            // Content의 likes 리스트에서 해당 좋아요를 찾아서 제거
+            content.getLikes().removeIf(like -> like.getUser().getUserId().equals(userId));
+            contentLikeRepository.deleteByContent_ContentIdAndUser_UserId(contentId, userId);
+            content.setLikeCount(content.getLikeCount() - 1);
+            isLiked = false;
+        } else {
+            ContentLike like = ContentLike.builder()
+                    .content(content)
+                    .user(user)
+                    .build();
+            contentLikeRepository.save(like);
+            // Content의 likes 리스트에 추가
+            content.getLikes().add(like);
+            content.setLikeCount(content.getLikeCount() + 1);
+            isLiked = true;
+        }
+
+        contentRepository.save(content);
+
+        return new ContentLikeResponseDto(content.getLikeCount(), isLiked);
+    }
+
 	/** 삭제 전 확인 */
 	@Override
 	public ContentDeletePreviewDto getDeletePreview(Byte contentId, Byte userId) {
@@ -462,42 +498,6 @@ public class ContentServiceImpl implements ContentService {
 			postDto,
 			isOwner
 		);
-	}
-
-	/** 콘텐츠 좋아요 토글 */
-	@Override
-	public ContentLikeResponseDto toggleLike(Byte contentId, Byte userId) {
-		Content content = contentRepository.findById(contentId)
-			.orElseThrow(() -> new IllegalArgumentException("콘텐츠 없음"));
-
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
-
-		// 이미 눌렀는지 확인
-		boolean exists = contentLikeRepository.existsByContent_ContentIdAndUser_UserId(contentId, userId);
-		boolean isLiked;
-
-		if (exists) {
-			// Content의 likes 리스트에서 해당 좋아요를 찾아서 제거
-			content.getLikes().removeIf(like -> like.getUser().getUserId().equals(userId));
-			contentLikeRepository.deleteByContent_ContentIdAndUser_UserId(contentId, userId);
-			content.setLikeCount(content.getLikeCount() - 1);
-			isLiked = false;
-		} else {
-			ContentLike like = ContentLike.builder()
-				.content(content)
-				.user(user)
-				.build();
-			contentLikeRepository.save(like);
-			// Content의 likes 리스트에 추가
-			content.getLikes().add(like);
-			content.setLikeCount(content.getLikeCount() + 1);
-			isLiked = true;
-		}
-
-		contentRepository.save(content);
-		
-		return new ContentLikeResponseDto(content.getLikeCount(), isLiked);
 	}
 
 	/** 리스트dto 변환 */

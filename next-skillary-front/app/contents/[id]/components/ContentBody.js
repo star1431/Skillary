@@ -52,7 +52,7 @@ export default function ContentBody({ content, canViewContent }) {
               <>
                 {/* 이미지/비디오 탭 및 콘텐츠 */}
                 {(imageFiles.length > 0 || videoFiles.length > 0) && (
-                  <div className="mb-8">
+                  <div className="mb-6 pb-6 border-b border-gray-200">
                     {/* 탭 네비게이션 */}
                     {showTabs && (
                       <div className="flex gap-2 mb-6 border-b border-gray-200">
@@ -244,7 +244,7 @@ export default function ContentBody({ content, canViewContent }) {
                 )}
 
                 {/* 본문 텍스트 */}
-                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed mt-6 pt-6 border-t border-gray-200">
+                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
                   {content.post.body}
                 </div>
               </>

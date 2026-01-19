@@ -238,14 +238,26 @@ export default function ContentsPage() {
         {/* 에러 상태 */}
         {!loading && error && (
           <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-50 mb-4">
+              <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-black mb-2">콘텐츠를 불러올 수 없습니다</h3>
+            <p className="text-red-600 text-sm mb-2">{error}</p>
+            <p className="text-gray-500 text-sm">잠시 후 다시 시도해주세요.</p>
           </div>
         )}
 
         {/* 콘텐츠가 없을 때 */}
         {!loading && !error && contents.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-600">콘텐츠가 없습니다.</p>
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-purple-50 mb-4">
+              <svg className="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-black mb-2">컨텐츠가 없습니다</h3>
           </div>
         )}
 

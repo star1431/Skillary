@@ -1,6 +1,12 @@
 spring:
     application:
         name: spring-skillary-back
+    servlet:
+      multipart:
+        enabled: true
+        max-file-size: 50MB
+        max-request-size: 200MB
+        file-size-threshold: 2KB
     mail:
       host: ${SPRING_MAIL_HOST}
       port: ${SPRING_MAIL_PORT}

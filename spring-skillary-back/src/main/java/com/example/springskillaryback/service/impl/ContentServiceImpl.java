@@ -24,6 +24,8 @@ import com.example.springskillaryback.service.FileService;
 import com.example.springskillaryback.domain.Order;
 import com.example.springskillaryback.domain.OrderStatusEnum;
 import com.example.springskillaryback.repository.OrderRepository;
+import com.example.springskillaryback.repository.SubscribeRepository;
+import com.example.springskillaryback.domain.SubscribeStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -51,6 +53,7 @@ public class ContentServiceImpl implements ContentService {
 	private final ContentLikeRepository contentLikeRepository;
 	private final UserRepository userRepository;
 	private final OrderRepository orderRepository;
+	private final SubscribeRepository subscribeRepository;
 
 	/** 콘텐츠 생성 */
 	@Override
@@ -92,7 +95,7 @@ public class ContentServiceImpl implements ContentService {
             savedContent = contentRepository.save(savedContent);
 		}
 
-        return toDto(savedContent, false);
+        return toDto(savedContent, false, false, false);
 	}
 
 	/** 콘텐츠 수정 */
@@ -167,7 +170,7 @@ public class ContentServiceImpl implements ContentService {
 		}
 
 		Content savedContent = contentRepository.save(content);
-		return toDto(savedContent, false);
+		return toDto(savedContent, false, false, false);
 	}
 
 	/** 콘텐츠 전체 목록 조회 */
@@ -222,14 +225,36 @@ public class ContentServiceImpl implements ContentService {
 		
 		// 현재 사용자가 콘텐츠 소유자인지 확인
 		boolean isOwner = false;
+		boolean isPurchased = false;
+		boolean isSubscribed = false;
+		
 		if (userId != null) {
-			Creator creator = creatorRepository.findByUser_UserId(userId).orElse(null);
-			if (creator != null && content.getCreator().getCreatorId().equals(creator.getCreatorId())) {
-				isOwner = true;
+			User user = userRepository.findById(userId).orElse(null);
+			if (user != null) {
+				Creator creator = creatorRepository.findByUser_UserId(userId).orElse(null);
+				if (creator != null && content.getCreator().getCreatorId().equals(creator.getCreatorId())) {
+					isOwner = true;
+				}
+				
+				// 단건 체크
+				if (content.getPrice() != null) {
+					List<Order> paidOrders = orderRepository.findByContentIdAndStatus(contentId, OrderStatusEnum.PAID);
+					isPurchased = paidOrders.stream()
+						.anyMatch(order -> order.getUser().getUserId().equals(userId));
+				}
+				
+				// 구독 체크
+				if (content.getPlan() != null) {
+					isSubscribed = subscribeRepository.existsBySubscribeStatusAndSubscriptionPlanAndUser(
+						SubscribeStatusEnum.ACTIVE,
+						content.getPlan(),
+						user
+					);
+				}
 			}
 		}
 		
-		return toDto(content, isOwner);
+		return toDto(content, isOwner, isPurchased, isSubscribed);
 	}
 
 	/** getContent에서 분리 - 조회수 증가 */
@@ -466,7 +491,7 @@ public class ContentServiceImpl implements ContentService {
 	}
 
 	/** dto 변환 */
-	private ContentResponseDto toDto(Content content, Boolean isOwner) {
+	private ContentResponseDto toDto(Content content, Boolean isOwner, Boolean isPurchased, Boolean isSubscribed) {
 		Creator creator = content.getCreator();
 		Post post = content.getPost();
 		
@@ -498,7 +523,9 @@ public class ContentServiceImpl implements ContentService {
 			content.getViewCount(),
 			content.getLikeCount(),
 			postDto,
-			isOwner
+			isOwner,
+			isPurchased,
+			isSubscribed
 		);
 	}
 

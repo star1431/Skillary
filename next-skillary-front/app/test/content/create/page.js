@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getCategories, createContent, getContent, updateContent } from '../../../api/contents';
 import { uploadImage, uploadVideo } from '../../../api/files';
 
-const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL || 'http://localhost:8080/api';
 
 export default function ContentCreateTestPage() {
   const router = useRouter();

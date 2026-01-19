@@ -34,13 +34,26 @@ export default function CommentSection({
           ...comment,
           likedByCurrentUser: comment.likedByCurrentUser || comment.likedByUser || false,
           children: buildCommentTree(comment.commentId)
-        }));
+        }))
+        .sort((a, b) => {
+          // createdAt 기준 오름차순 정렬 (오래된 것이 먼저)
+          const dateA = new Date(a.createdAt || a.created_at || 0);
+          const dateB = new Date(b.createdAt || b.created_at || 0);
+          return dateA - dateB;
+        });
     };
-    return topLevelComments.map(comment => ({
-      ...comment,
-      likedByCurrentUser: comment.likedByCurrentUser || comment.likedByUser || false,
-      children: buildCommentTree(comment.commentId)
-    }));
+    return topLevelComments
+      .map(comment => ({
+        ...comment,
+        likedByCurrentUser: comment.likedByCurrentUser || comment.likedByUser || false,
+        children: buildCommentTree(comment.commentId)
+      }))
+      .sort((a, b) => {
+        // createdAt 기준 오름차순 정렬 (오래된 것이 먼저)
+        const dateA = new Date(a.createdAt || a.created_at || 0);
+        const dateB = new Date(b.createdAt || b.created_at || 0);
+        return dateA - dateB;
+      });
   };
 
   // 댓글 목록 로드

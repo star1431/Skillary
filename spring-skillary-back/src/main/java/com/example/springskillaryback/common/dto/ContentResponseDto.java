@@ -19,7 +19,9 @@ public record ContentResponseDto(
 		Integer viewCount,
 		Integer likeCount,  // 좋아요 수 추가
 		PostResponseDto post,
-		Boolean isOwner  // 콘텐츠 소유자 여부
+		Boolean isOwner,  // 콘텐츠 소유자 여부
+		Boolean isPurchased,  // 사용자 콘텐츠 소유 여부 추가
+		Boolean isSubscribed  // 사용자 구독 여부 추가
 ) {
 }
 

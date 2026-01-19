@@ -186,16 +186,3 @@ export async function toggleContentLike(contentId) {
   );
 }
 
-/**
- * [TODO] 크리에이터의 구독 플랜 목록 조회
- * 플랜 담당자가 API 작업 완료 후 사용할 수 있습니다.
- * @param {number} creatorId - 크리에이터 ID
- * @returns {Promise} 구독 플랜 목록
- */
-// export async function getSubscriptionPlansByCreator(creatorId) {
-//   return await baseRequest(
-//     'GET',
-//     {},
-//     `/subscription-plans/creators/${creatorId}` // 플랜 담당자가 작업할 예정인 API 엔드포인트
-//   );
-// }

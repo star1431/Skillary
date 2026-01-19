@@ -69,21 +69,22 @@ public class Order {
 	@OneToOne(mappedBy = "order")
 	private Payment payment;
 
-	private Order(int amount, User user) {
-		this.amount = amount;
-		this.user = user;
-		this.expiredAt = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
-	}
+    private Order(int amount, User user) {
+        this.amount = amount;
+        this.user = user;
+        this.expiredAt = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
+        this.status = OrderStatusEnum.PENDING;
+    }
 
-	public Order(int amount, User user, SubscriptionPlan subscriptionPlan) {
-		this(amount, user);
-		this.subscriptionPlan = subscriptionPlan;
-	}
+    public Order(int amount, User user, SubscriptionPlan subscriptionPlan) {
+        this(amount, user);
+        this.subscriptionPlan = subscriptionPlan;
+    }
 
-	public Order(int amount, User user, Content content) {
-		this(amount, user);
-		this.content = content;
-	}
+    public Order(int amount, User user, Content content) {
+        this(amount, user);
+        this.content = content;
+    }
 
 	public boolean verifyWith(int credit) {
 		return LocalDateTime.now().isBefore(this.expiredAt)

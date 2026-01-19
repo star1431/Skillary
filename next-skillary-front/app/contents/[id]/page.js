@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getContent, deleteContent } from '../../api/contents';
-import { popularContents } from '../../components/popularContentsData';
-import { getCurrentUser } from '../../api/auth';
+import { getContent, deleteContent, getDeletePreview } from '@/api/contents';
+import { getCurrentUser } from '@/api/users';
+import { getSubscriptionPlan } from '@/api/subscriptions';
+import { formatDate } from '@/utils/formatUtils';
 import ContentHead from './components/ContentHead';
 import ContentBody from './components/ContentBody';
 import CommentSection from './components/CommentSection';
@@ -17,13 +18,10 @@ export default function ContentDetailPage({ params }) {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [subscriptionPlan, setSubscriptionPlan] = useState(null);
   
   // 현재 사용자 정보 (토큰 기반 인증)
   const [currentUserId, setCurrentUserId] = useState(null); // 로그인한 사용자 ID (null이면 비로그인)
-  
-  // [TODO] 실제 API에서 구독/구매 여부 확인 필요
-  const [isSubscribed, setIsSubscribed] = useState(false); // 실제 구독 여부 확인
-  const [isPurchased, setIsPurchased] = useState(false); // 실제 구매 여부 확인
 
   // 콘텐츠 상세 정보 로드
   useEffect(() => {
@@ -34,60 +32,19 @@ export default function ContentDetailPage({ params }) {
       setError(null);
       
       try {
-        // 실제 데이터를 먼저 시도 (모든 contentId에 대해)
         const data = await getContent(contentId);
         setContent(data);
-        
-        // 토큰 기반 인증으로 현재 사용자 정보 가져오기
-        try {
-          const userInfo = await getCurrentUser();
-          if (userInfo) {
-            setCurrentUserId(userInfo.userId);
-          }
-        } catch (err) {
-          // 인증 정보 가져오기 실패 시 비로그인 상태로 처리
-          setCurrentUserId(null);
-        }
       } catch (err) {
-        // 실제 데이터가 없을 때 목업 데이터 사용
-        console.log(`콘텐츠 ${contentId} 실제 데이터 없음, 목업 데이터 사용`);
-        const fallbackContent = popularContents.find(item => item.id === contentId) || popularContents[0];
-        if (fallbackContent) {
-          const convertedContent = {
-            contentId: fallbackContent.id,
-            title: fallbackContent.title,
-            description: fallbackContent.description,
-            creatorName: fallbackContent.author,
-            createdAt: new Date().toISOString(),
-            thumbnailUrl: null,
-            category: fallbackContent.category || 'ETC',
-            planId: fallbackContent.badgeType === 'badge' && fallbackContent.badge === '구독자 전용' ? 1 : null,
-            price: fallbackContent.badgeType === 'price' ? parseInt(fallbackContent.price?.replace(/[^0-9]/g, '') || '0') : null,
-            viewCount: 0,
-            likeCount: 0,
-            creatorId: 1,
-            post: {
-              body: fallbackContent.body || `### ${fallbackContent.title}\n\n${fallbackContent.description}`,
-              postFiles: []
-            }
-          };
-          setContent(convertedContent);
-          setError(null);
-        } else {
-          setError('콘텐츠를 찾을 수 없습니다.');
-        }
+        console.error('콘텐츠 로드 실패:', err);
+        setError('콘텐츠를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
       }
-      
-      // [TODO] 실제 API에서 구독/구매 여부 확인 필요
-      // 예: setIsSubscribed(await checkSubscription(data.planId, currentUserId));
-      // 예: setIsPurchased(await checkPurchase(data.contentId, currentUserId));
-      
-      setLoading(false);
     }
     loadContent();
   }, [id]);
 
-  // 현재 사용자 정보 가져오기 (토큰 기반 인증)
+  // 현재 사용자 정보 가져오기
   useEffect(() => {
     async function loadCurrentUser() {
       try {
@@ -103,11 +60,31 @@ export default function ContentDetailPage({ params }) {
     loadCurrentUser();
   }, []);
 
+  // 구독 플랜 정보 가져오기
+  useEffect(() => {
+    async function loadSubscriptionPlan() {
+      if (content?.planId) {
+        try {
+          const plan = await getSubscriptionPlan(content.planId);
+          setSubscriptionPlan(plan);
+        } catch (err) {
+          console.error('구독 플랜 정보 로드 실패:', err);
+          setSubscriptionPlan(null);
+        }
+      }
+    }
+    loadSubscriptionPlan();
+  }, [content?.planId]);
+
   // 로그인 여부 확인
   const isLoggedIn = currentUserId !== null;
   
   // 크리에이터 본인 여부 확인 (백엔드에서 isOwner로 반환)
   const isOwner = content?.isOwner || false;
+  
+  // 구매/구독 여부 (백엔드에서 반환)
+  const isPurchased = content?.isPurchased || false;
+  const isSubscribed = content?.isSubscribed || false;
   
   // 유료 콘텐츠 여부
   const isPaidContent = content?.planId || content?.price;
@@ -140,11 +117,41 @@ export default function ContentDetailPage({ params }) {
     if (!confirm('콘텐츠를 삭제하시겠습니까?')) return;
 
     try {
-      await deleteContent(parseInt(id));
-      router.push('/contents');
+      const contentId = parseInt(id);
+      
+      // 삭제 전에 결제 여부 및 삭제 예정일 확인
+      console.log('[GET] 삭제 예정 정보 조회:', contentId);
+      const preview = await getDeletePreview(contentId);
+      console.log('[GET] 삭제 예정 정보:', preview);
+      
+      // 결제한 사용자가 있는 경우
+      if (preview.hasPaidUsers && preview.deletedAt) {
+        const formattedDate = formatDate(preview.deletedAt);
+        const confirmMessage = `결제 이용한 사용자가 있습니다.\n삭제 예정일 : ${formattedDate}\n삭제 진행하겠습니까?`;
+        
+        if (!confirm(confirmMessage)) return;
+      }
+
+      // 삭제 실행 (서비스 단에서 삭제 요청 시점에 deletedAt 계산)
+      console.log('[DELETE] 콘텐츠 삭제:', contentId);
+      await deleteContent(contentId);
+      console.log('[DELETE] 콘텐츠 삭제 완료');
+      
+      // 삭제 후 콘텐츠 정보 다시 조회하여 상태 확인
+      const updatedContent = await getContent(contentId);
+      console.log('[GET] 삭제 후 콘텐츠 정보:', updatedContent);
+      
+      if (updatedContent.deletedAt) {
+        // 삭제 예정으로 설정된 경우
+        setContent(updatedContent);
+        alert('콘텐츠가 삭제 예정으로 설정되었습니다.');
+      } else {
+        // 즉시 삭제된 경우
+        router.push('/contents');
+      }
     } catch (err) {
-      console.error('콘텐츠 삭제 실패:', err);
-      alert('콘텐츠 삭제에 실패했습니다: ' + err.message);
+      console.error('[DELETE] 콘텐츠 삭제 실패:', err);
+      alert('콘텐츠 삭제에 실패했습니다.');
     }
   };
 
@@ -188,37 +195,41 @@ export default function ContentDetailPage({ params }) {
             canViewContent={canViewContent}
           />
 
-        {/* 액션 버튼 */}
-        <div className="flex gap-4">
-          {isOwner && (
-            <button
-              onClick={handleEdit}
-              className="px-6 py-3 border-2 border-black text-black rounded-lg font-semibold hover:bg-gray-50 transition"
-            >
-              수정하기
-            </button>
-          )}
-          {content.badgeType === 'price' && (
-            <button 
-              onClick={() => router.push(`/orders/payment?contentId=1`)}
-              className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
-            >
-              구매하기 {content.price}
-            </button>
-          )}
-          {content.badgeType === 'badge' && content.badge === '구독자 전용' && (
-            <button 
-              onClick={() => router.push(`/orders/billing?planId=1`)}
-              className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition text-center block"
-            >
-              구독하기
-            </button>
-          )}
-          {content.badge === '무료' && (
-            <button className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition">
-              콘텐츠 보기
-            </button>
-          )}
+          {/* 액션 버튼 */}
+          <div className="flex gap-4 mb-8">
+              {/* 본인 소유인 경우에만 수정/삭제 버튼 표시 */}
+              {isOwner && (
+                <>
+                  <button
+                    onClick={handleEdit}
+                    className="px-6 py-3 border-2 border-black text-black rounded-lg font-semibold hover:bg-gray-50 transition"
+                  >
+                    수정하기
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="px-6 py-3 border-2 border-red-500 text-red-500 rounded-lg font-semibold hover:bg-red-50 transition"
+                  >
+                    삭제하기
+                  </button>
+                </>
+              )}
+              {!isOwner && content?.price && !isPurchased && (
+                <button 
+                  onClick={() => router.push(`/orders/payment?contentId=${id}`)}
+                  className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+                >
+                  구매하기 ( ₩ {content.price.toLocaleString('ko-KR')} )
+                </button>
+              )}
+              {!isOwner && content?.planId && !isSubscribed && (
+                <button 
+                  onClick={() => router.push(`/orders/billing?planId=${content.planId}`)}
+                  className="flex-1 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+                >
+                  {subscriptionPlan?.planName || '구독하기'}{subscriptionPlan?.price ? ` ( ₩ ${subscriptionPlan.price.toLocaleString('ko-KR')} )` : '' }
+                </button>
+              )}
           </div>
           {/* 댓글 섹션 */}
           <CommentSection

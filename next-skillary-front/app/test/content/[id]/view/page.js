@@ -2,12 +2,11 @@
 
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getContent, toggleContentLike, updateContent, deleteContent, getDeletePreview } from '../../../../api/contents';
-import { formatDate } from '../../../../utils/formatUtils';
-import { getComments, addComment, deleteComment, toggleLike } from '../../../../api/comments';
-import { getCurrentUser } from '../../../../api/auth';
+import { getContent, toggleContentLike, updateContent, deleteContent, getDeletePreview } from '@/api/contents';
+import { formatDate } from '@/utils/formatUtils';
+import { getComments, addComment, deleteComment, toggleLike } from '@/api/comments';
+import { getCurrentUser } from '@/api/auth';
 
-const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL || 'http://localhost:8080/api';
 
 export default function ContentViewTestPage({ params }) {
   const { id } = use(params);

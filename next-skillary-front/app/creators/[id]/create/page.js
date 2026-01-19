@@ -3,10 +3,10 @@
 import { useState, use, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { creators } from '../../components/data';
-import { popularContents } from '../../../components/popularContentsData';
-import { createContent, updateContent, getContent, getCategories } from '../../../api/contents';
-import { uploadImage, uploadVideo } from '../../../api/files';
+import { getCurrentCreator } from '@/api/creator';
+import { createContent, updateContent, getContent, getCategories } from '@/api/contents';
+import { uploadImage, uploadVideo } from '@/api/files';
+import { pagingSubscriptionPlans } from '@/api/subscriptions';
 
 export default function CreateContentPage({ params }) {
   const { id } = use(params);
@@ -31,12 +31,53 @@ export default function CreateContentPage({ params }) {
     files: []
   });
   const [categories, setCategories] = useState([]);
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isThumbnailDragging, setIsThumbnailDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [creator, setCreator] = useState(null);
+  const [accessError, setAccessError] = useState(null);
 
-  const creator = creators.find(item => item.id === parseInt(id));
-  const content = contentId ? popularContents.find(item => item.id === parseInt(contentId)) : null;
+  // 로그인한 사용자의 크리에이터 정보 가져오기 및 권한 확인
+  useEffect(() => {
+    async function checkAuthorization() {
+      try {
+        setCheckingAccess(true);
+        const creatorInfo = await getCurrentCreator();
+        console.log('크리에이터 정보:', creatorInfo);
+        
+        if (!creatorInfo || !creatorInfo.creatorId) {
+          setHasAccess(false);
+          setAccessError('크리에이터로 로그인해야 콘텐츠를 생성할 수 있습니다.');
+          return;
+        }
+        
+        setCreator(creatorInfo);
+        
+        // url의 id와 현재 로그인 사용자 크리에이터 id 비교
+        const urlCreatorId = parseInt(id);
+        const currentCreatorId = creatorInfo.creatorId;
+        
+        if (currentCreatorId === urlCreatorId) {
+          setHasAccess(true);
+          setAccessError(null);
+        } else {
+          setHasAccess(false);
+          setAccessError('해당 크리에이터의 콘텐츠를 생성할 권한이 없습니다.');
+        }
+      } catch (err) {
+        // 크리에이터가 아님 or 인증 실패
+        setHasAccess(false);
+        setAccessError('크리에이터로 로그인해야 콘텐츠를 생성할 수 있습니다.');
+      } finally {
+        setCheckingAccess(false);
+      }
+    }
+    
+    checkAuthorization();
+  }, [id, router]);
 
   // 카테고리 목록 로드
   useEffect(() => {
@@ -51,6 +92,24 @@ export default function CreateContentPage({ params }) {
     loadCategories();
   }, []);
 
+  // 구독 플랜 목록 로드
+  useEffect(() => {
+    async function loadSubscriptionPlans() {
+      if (hasAccess) {
+        try {
+          const response = await pagingSubscriptionPlans(0, 100); // 충분히 큰 size로 모든 플랜 가져오기
+          // content가 있으면 사용, 없으면 전체 사용
+          const data = response.content || response;
+          setSubscriptionPlans(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error('구독 플랜 로드 실패:', err);
+          setSubscriptionPlans([]);
+        }
+      }
+    }
+    loadSubscriptionPlans();
+  }, [hasAccess]);
+
   // 수정 모드일 때 기존 데이터 불러오기
   useEffect(() => {
     async function loadContent() {
@@ -62,7 +121,7 @@ export default function CreateContentPage({ params }) {
           const isPaid = (content.price != null && content.price !== 0) || content.planId != null;
           const type = isPaid ? 'paid' : 'free';
           // 유료일 때만 paymentType 판단, 무료면 기본값 유지
-          const paymentType = isPaid 
+          const paymentType = isPaid
             ? (content.planId ? 'subscription' : 'one-time')
             : 'subscription'; // 기본값
           
@@ -337,20 +396,61 @@ export default function CreateContentPage({ params }) {
     }
   };
 
+  // 에러 별도 처리
+  if (checkingAccess || !hasAccess || !creator) {
+    // 메시지와 아이콘 결정
+    let message = '';
+    let showIcon = true;
+    let iconType = 'warning'; // 'warning' or 'error'
+    
+    if (checkingAccess) {
+      message = '권한 확인 중...';
+      iconType = 'warning';
+    } else if (!creator) {
+      message = '크리에이터를 찾을 수 없습니다';
+      iconType = 'error';
+    } else {
+      message = accessError || '접근 권한이 없습니다';
+      iconType = 'warning';
+    }
+    
+    return (
+      <div className="h-[calc(100vh-66px)] bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          {/* 아이콘 */}
+          {showIcon && (
+            <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 ${
+              iconType === 'error' ? 'bg-red-50' : 'bg-yellow-50'
+            }`}>
+              {iconType === 'error' ? (
+                <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              )}
+            </div>
+          )}
+          <h1 className="text-2xl font-bold text-black mb-4">{message}</h1>
+          {!checkingAccess && (
+            <Link href="/creators" className="text-blue-600 hover:underline">
+              크리에이터 목록으로 돌아가기
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {!creator ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-black mb-4">크리에이터로 로그인해야 테스트 가능</h1>
-          </div>
-        </div>
-      ) : (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* 페이지 헤더 */}
           <div className="mb-8">
             <Link
-              href={`/creators/${creator.id}`}
+              href={`/creators/${creator.creatorId}`}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-black transition mb-4"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -536,7 +636,7 @@ export default function CreateContentPage({ params }) {
               </div>
 
               {/* 구독 선택 시 플랜 드롭다운 */}
-              {formData.paymentType === 'subscription' && creator.subscriptionPlans && creator.subscriptionPlans.length > 0 && (
+              {formData.paymentType === 'subscription' && (
                 <div>
                   <label htmlFor="selectedPlanId" className="block text-sm font-medium text-gray-700 mb-2">
                     구독 플랜 <span className="text-red-500">*</span>
@@ -554,11 +654,15 @@ export default function CreateContentPage({ params }) {
                       }`}
                     >
                       <option value="" disabled style={{ color: '#9CA3AF' }}>구독 플랜을 선택하세요</option>
-                      {creator.subscriptionPlans.map((plan) => (
-                        <option key={plan.id} value={plan.id} style={{ color: '#111827' }}>
-                          {plan.name} - ₩{plan.price.toLocaleString()}/{plan.period}
-                        </option>
-                      ))}
+                      {subscriptionPlans.length > 0 ? (
+                        subscriptionPlans.map((plan) => (
+                          <option key={plan.id || plan.planId} value={String(plan.id || plan.planId)} style={{ color: '#111827' }}>
+                            {plan.planName} - 월 {plan.price?.toLocaleString('ko-KR')}원
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled style={{ color: '#9CA3AF' }}>생성된 구독 플랜이 없습니다</option>
+                      )}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -566,6 +670,11 @@ export default function CreateContentPage({ params }) {
                       </svg>
                     </div>
                   </div>
+                  {subscriptionPlans.length === 0 && (
+                    <p className="mt-2 text-sm text-gray-500">
+                      구독 플랜이 없습니다. <Link href="/creators/plans/create" className="text-blue-600 hover:underline">플랜을 생성</Link>해주세요.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -734,7 +843,7 @@ export default function CreateContentPage({ params }) {
           {/* 제출 버튼 */}
           <div className="flex gap-4 pt-4">
             <Link
-              href={`/creators/${creator.id}`}
+              href={`/creators/${creator.creatorId}`}
               className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition text-center"
             >
               취소
@@ -748,8 +857,7 @@ export default function CreateContentPage({ params }) {
             </button>
           </div>
         </form>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

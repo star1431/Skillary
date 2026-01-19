@@ -44,6 +44,6 @@ public class SubscriptionPlan {
 	private LocalDateTime createdAt;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "creator_id")
+	@JoinColumn(name = "creator_id", nullable = false)
 	private Creator creator;
 }

@@ -1,16 +1,29 @@
 import { baseRequest } from './api';
 
-/*
-// 1. 보낼 데이터를 만든다
-const data = { planId: 101 };
+export async function getSubscriptions(
+  userId = 1,
+  page = 0,
+  size = 10
+) {
+  const result = await baseRequest(
+    'GET',
+    {},
+    `/subscriptions?userId=${userId}&page=${page}&size=${size}`,
+    null
+  );
+  return result;
+}
 
-// 2. baseRequest를 호출한다
-const result = await baseRequest(
-  'POST',                // 1. method
-  {},                    // 2. headers (없으면 빈 객체)
-  '/payments',           // 3. url
-  JSON.stringify(data)   // 4. body (문자열로 변환 필수!)
-);
-
-console.log(result);
-*/
+// 구독 취소
+export async function unsubscribe (
+  userId = 1,
+  planId = 1
+) {
+  const result = await baseRequest(
+    'DELETE',
+    {},
+    `/subscriptions/${planId}?userId=${userId}`,
+    null
+  );
+  return result === null;
+}

@@ -11,7 +11,7 @@ import Loading from '@/components/Loading';
 export default function Plans() {
   const [plans, setPlans] = useState([]); // 크리에이터가 만든 플랜 목록
   const [loading, setLoading] = useState(true);
-  const useRouter = useRouter();
+  const router = useRouter();
 
   // 1. 내가 만든 플랜 목록 불러오기
   const fetchPlans = async () => {
@@ -49,7 +49,7 @@ export default function Plans() {
 
   // 3. 신규 플랜 생성 페이지로 이동 (또는 모달 열기)
   const handleCreatePlan = () => {
-    useRouter('/plans/create');
+    router('/plans/create');
   };
 
   if (loading) return <Loading loadingMessage='플랜 목록을 불러오는 중입니다...' />;

@@ -15,7 +15,7 @@ const result = await baseRequest(
 console.log(result);
 */
 const TEXT_HEADERS = { Accept: 'text/plain' };
-const DEFAULT_API_URL = 'http://localhost:8080';
+const DEFAULT_API_URL = 'http://localhost:8080/api';
 const API_URL = process.env.NEXT_PUBLIC_FRONT_API_URL || DEFAULT_API_URL;
 
 // 백엔드: POST /api/auth/login (201, Set-Cookie, body 없음)
@@ -23,7 +23,7 @@ export async function login(email, password) {
   await baseRequest(
     'POST',
     TEXT_HEADERS,
-    '/auth/login', // (api경로수정)
+    '/auth/login',
     JSON.stringify({ email, password }),
     '로그인에 실패했습니다.',
     true // credentials include (쿠키 수신/전송)
@@ -36,7 +36,7 @@ export async function login(email, password) {
 // - 401: 비로그인/세션 만료(정상 케이스) → throw/log 없이 false 반환
 export async function silentRefresh() {
   try {
-    const res = await fetch(`${API_URL}/api/auth/refresh`, {
+    const res = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       headers: TEXT_HEADERS,
       credentials: 'include',
@@ -54,7 +54,7 @@ export async function refresh() {
   await baseRequest(
     'POST',
     TEXT_HEADERS,
-    '/auth/refresh', // (api경로수정)
+    '/auth/refresh',
     null,
     '토큰 갱신에 실패했습니다.',
     true
@@ -67,7 +67,7 @@ export async function logout() {
   await baseRequest(
     'POST',
     TEXT_HEADERS,
-    '/auth/logout', // (api경로수정)
+    '/auth/logout',
     null,
     '로그아웃에 실패했습니다.',
     true

@@ -31,10 +31,9 @@ public class Subscribe {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Byte subscribeId;
 
-    @Builder.Default
 	@Enumerated(STRING)
     @Column(length = 20, nullable = false)
-	private SubscribeStatusEnum subscribeStatus = SubscribeStatusEnum.INACTIVE;
+	private SubscribeStatusEnum subscribeStatus;
 
 	@CreationTimestamp
 	private LocalDateTime createdAt;

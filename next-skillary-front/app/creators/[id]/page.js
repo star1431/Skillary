@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, use, useEffect, useRef } from 'react';
 import { creators } from '../components/data';
 import PopularCard from '../../components/PopularCard';
+import { requstPaymentOrder } from '@/api/orders';
 import { getContentsByCreator } from '../../api/contents';
 
 export default function CreatorProfilePage({ params }) {
@@ -100,14 +101,15 @@ export default function CreatorProfilePage({ params }) {
   }, [isSubscriptionModalOpen]);
 
   const handleSubscribe = () => {
-    // 구독 플랜 모달 열기
     setIsSubscriptionModalOpen(true);
+    const order = requestPaymentOrder();
+    console.log(order);
   };
 
   const handleSelectPlan = (plan) => {
     // 구독 플랜 선택 시 주문 페이지로 이동
     setIsSubscriptionModalOpen(false);
-    router.push(`/orders?creatorId=${creator.id}&planId=${plan.id}`);
+    router.push(`/orders?creatorId=${order.orderId}&price=${price}&planName=${order.planName}`);
   };
 
   const handleCreateContent = () => {
@@ -228,6 +230,7 @@ export default function CreatorProfilePage({ params }) {
                   title={content.title}
                   description={content.description}
                   author={content.creatorName}
+                  profileImageUrl={content.profileImageUrl}
                   date={formatDate(content.createdAt)}
                   badge={badgeInfo.text}
                   badgeType={badgeInfo.type}

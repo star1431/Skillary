@@ -15,9 +15,11 @@ public record ContentResponseDto(
 		String thumbnailUrl,
 		LocalDateTime createdAt,
 		LocalDateTime updatedAt,
+		LocalDateTime deletedAt,
 		Integer viewCount,
+		Integer likeCount,  // 좋아요 수 추가
 		PostResponseDto post,
-		Boolean isOwner  // 콘텐츠 소유자 여부 추가
+		Boolean isOwner  // 콘텐츠 소유자 여부
 ) {
 }
 

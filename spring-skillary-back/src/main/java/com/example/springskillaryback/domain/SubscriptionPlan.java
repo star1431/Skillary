@@ -32,6 +32,9 @@ public class SubscriptionPlan {
 	private String name;
 
 	@Column(nullable = false)
+	private String description;
+
+	@Column(nullable = false)
 	private int price;
 
     @Builder.Default

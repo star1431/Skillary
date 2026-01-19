@@ -14,6 +14,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.springskillaryback.domain.SubscriptionPlan;
+import com.example.springskillaryback.domain.User;
+import com.example.springskillaryback.repository.SubscribeRepository;
+import com.example.springskillaryback.service.SubscriptionService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
 @Service
 @Transactional
 @RequiredArgsConstructor

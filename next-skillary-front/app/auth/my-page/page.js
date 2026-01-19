@@ -87,6 +87,12 @@ export default function MyPage() {
               <h3 className="text-lg font-bold text-black mb-4">빠른 메뉴</h3>
               <div className="space-y-2">
                 <Link
+                  href="/cards/list"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                >
+                  결제 카드
+                </Link>
+                <Link
                   href="/orders/list"
                   className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition"
                 >

@@ -28,7 +28,7 @@ public class UserController {
     public ResponseEntity<Void> updateUser(Authentication authentication, @Valid @RequestBody UpdateUserRequest request) {
         Byte userId = Byte.valueOf((String) authentication.getPrincipal());
         try {
-            userService.updateUser(userId, request.nickname());
+            userService.updateUser(userId, request.nickname(), request.profile());
             return ResponseEntity.noContent().build(); // 204
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().header("X-Error-Message", e.getMessage()).build();

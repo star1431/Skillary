@@ -20,11 +20,6 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      try {
-        localStorage.setItem('isAuthed', '1');
-      } catch {
-        // ignore
-      }
       router.replace('/');
     } catch (err) {
       setError(err?.message || '로그인에 실패했습니다.');

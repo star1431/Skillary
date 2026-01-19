@@ -1,16 +1,12 @@
 'use client';
 
-import { useState, use, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, use, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { creators } from '../../components/data';
+import { popularContents } from '../../../components/popularContentsData';
 import { createContent, updateContent, getContent, getCategories } from '../../../api/contents';
-// import { getSubscriptionPlansByCreator } from '../../../api/contents'; // [TODO] 플랜 담당자가 API 작업 완료 후 사용
-import { uploadImage } from '../../../api/files';
-import Editor from '@toast-ui/editor';
-import '@toast-ui/editor/dist/toastui-editor.css';
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+import { uploadImage, uploadVideo } from '../../../api/files';
 
 export default function CreateContentPage({ params }) {
   const { id } = use(params);
@@ -18,33 +14,29 @@ export default function CreateContentPage({ params }) {
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   const contentId = searchParams.get('contentId');
+  const fileInputRef = useRef(null);
   const thumbnailInputRef = useRef(null);
-  const editorRef = useRef(null);
-  const editorDivRef = useRef(null);
   
   const [formData, setFormData] = useState({
     title: '',
-    description: '',
-    category: 'EXERCISE',
-    type: 'free',
-    paymentType: 'subscription',
-    selectedPlanId: '',
-    price: '',
-    thumbnail: null,
-    thumbnailUrl: '',
-    postBody: '',
-    postFiles: [],
-    pendingImages: []
+    description: '', // 콘텐츠 소개란
+    category: 'EXERCISE', // 카테고리
+    type: 'free', // free, paid
+    paymentType: 'subscription', // subscription, one-time
+    selectedPlanId: '', // 구독 플랜 ID
+    price: '', // 단건 결제 가격
+    thumbnail: null, // 썸네일 이미지
+    thumbnailUrl: '', // 썸네일 dataUrl
+    body: '', // 본문 (textarea)
+    files: []
   });
-  
   const [categories, setCategories] = useState([]);
-  // const [subscriptionPlans, setSubscriptionPlans] = useState([]); // [TODO] 플랜 담당자가 API 작업 완료 후 사용
+  const [isDragging, setIsDragging] = useState(false);
   const [isThumbnailDragging, setIsThumbnailDragging] = useState(false);
   const [loading, setLoading] = useState(false);
-  // [TODO] 실제 인증 정보에서 creatorId를 가져와야 함 (현재는 URL 파라미터에서 가져옴)
-  const [currentCreatorId] = useState(parseInt(id));
 
   const creator = creators.find(item => item.id === parseInt(id));
+  const content = contentId ? popularContents.find(item => item.id === parseInt(contentId)) : null;
 
   // 카테고리 목록 로드
   useEffect(() => {
@@ -59,20 +51,6 @@ export default function CreateContentPage({ params }) {
     loadCategories();
   }, []);
 
-  // [TODO] 구독 플랜 목록 로드 - 플랜 담당자가 API 작업 완료 후 활성화
-  // useEffect(() => {
-  //   async function loadSubscriptionPlans() {
-  //     try {
-  //       const plans = await getSubscriptionPlansByCreator(currentCreatorId);
-  //       setSubscriptionPlans(plans || []);
-  //     } catch (err) {
-  //       console.error('구독 플랜 로드 실패:', err);
-  //       setSubscriptionPlans([]);
-  //     }
-  //   }
-  //   loadSubscriptionPlans();
-  // }, [currentCreatorId]);
-
   // 수정 모드일 때 기존 데이터 불러오기
   useEffect(() => {
     async function loadContent() {
@@ -80,8 +58,46 @@ export default function CreateContentPage({ params }) {
         try {
           setLoading(true);
           const content = await getContent(contentId);
-          const type = content.price || content.planId ? 'paid' : 'free';
-          const paymentType = content.planId ? 'subscription' : 'one-time';
+          // price가 null/undefined가 아니거나 planId가 있으면 유료
+          const isPaid = (content.price != null && content.price !== 0) || content.planId != null;
+          const type = isPaid ? 'paid' : 'free';
+          // 유료일 때만 paymentType 판단, 무료면 기본값 유지
+          const paymentType = isPaid 
+            ? (content.planId ? 'subscription' : 'one-time')
+            : 'subscription'; // 기본값
+          
+          // price가 숫자일 수도 있고 문자열일 수도 있음
+          const priceValue = content.price != null ? String(content.price) : '';
+          const formattedPrice = priceValue ? priceValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+          
+          // postFiles URL 배열을 표시용 파일 정보로 변환
+          const existingFiles = (content.post?.postFiles || []).map((fileUrl) => {
+            // URL에서 파일명 추출
+            try {
+              const url = new URL(fileUrl);
+              const pathParts = url.pathname.split('/');
+              const fileName = pathParts[pathParts.length - 1] || '파일';
+              // 확장자로 타입 판단
+              const extension = fileName.split('.').pop()?.toLowerCase() || '';
+              const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension);
+              const type = isImage ? `image/${extension === 'jpg' ? 'jpeg' : extension}` : `video/${extension === 'mp4' ? 'mp4' : extension}`;
+              
+              return {
+                name: fileName,
+                url: fileUrl,
+                size: 0, // URL에서는 크기를 알 수 없음
+                type: type
+              };
+            } catch {
+              // URL 파싱 실패 시 기본값
+              return {
+                name: '파일',
+                url: fileUrl,
+                size: 0,
+                type: 'application/octet-stream'
+              };
+            }
+          });
           
           setFormData({
             title: content.title || '',
@@ -89,13 +105,12 @@ export default function CreateContentPage({ params }) {
             category: content.category || 'EXERCISE',
             type: type,
             paymentType: paymentType,
-            selectedPlanId: content.planId ? content.planId.toString() : '',
-            price: content.price ? content.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '',
+            selectedPlanId: content.planId ? String(content.planId) : '',
+            price: formattedPrice,
             thumbnail: null,
             thumbnailUrl: content.thumbnailUrl || '',
-            postBody: content.post?.body || '',
-            postFiles: content.post?.postFiles || [],
-            pendingImages: []
+            body: content.post?.body || '',
+            files: existingFiles
           });
         } catch (err) {
           console.error('콘텐츠 로드 실패:', err);
@@ -106,37 +121,6 @@ export default function CreateContentPage({ params }) {
     }
     loadContent();
   }, [isEditMode, contentId]);
-
-  if (!creator) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-black mb-4">크리에이터를 찾을 수 없습니다</h1>
-          <Link href="/creators" className="text-blue-600 hover:underline">
-            크리에이터 목록으로 돌아가기
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // 파일 크기 검증
-  const validateFileSize = (file, fileType) => {
-    if (file.size > MAX_FILE_SIZE) {
-      alert(`${fileType} 파일 크기는 10MB 이하여야 합니다.`);
-      throw new Error(`${fileType} 파일 크기는 10MB 이하여야 합니다.`);
-    }
-  };
-
-  // 파일을 base64 data URL로 변환
-  const fileToDataUrl = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
 
   // 가격 포맷팅
   const formatPriceWithComma = (value) => {
@@ -165,11 +149,40 @@ export default function CreateContentPage({ params }) {
     }
   };
 
+  // 파일을 base64 data URL로 변환
+  const fileToDataUrl = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // 공통 드래그 앤 드롭 핸들러
+  const createDragHandlers = (setIsDraggingState) => ({
+    onDragOver: (e) => {
+      e.preventDefault();
+      setIsDraggingState(true);
+    },
+    onDragLeave: (e) => {
+      e.preventDefault();
+      setIsDraggingState(false);
+    }
+  });
+
+  // 파일 선택 핸들러
+  const handleFileSelect = (files) => {
+    const fileArray = Array.from(files);
+    setFormData(prev => ({
+      ...prev,
+      files: [...prev.files, ...fileArray]
+    }));
+  };
+
+  // 썸네일 선택 핸들러
   const handleThumbnailSelect = async (file) => {
     if (!file?.type.startsWith('image/')) return;
-    
-    validateFileSize(file, '썸네일 이미지');
-    
     const dataUrl = await fileToDataUrl(file);
     setFormData(prev => ({
       ...prev,
@@ -178,30 +191,34 @@ export default function CreateContentPage({ params }) {
     }));
   };
 
-  const handleThumbnailDragOver = (e) => {
+  // 파일 드래그 앤 드롭
+  const fileDragHandlers = createDragHandlers(setIsDragging);
+  const handleFileDrop = (e) => {
     e.preventDefault();
-    setIsThumbnailDragging(true);
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleFileSelect(files);
   };
 
-  const handleThumbnailDragLeave = (e) => {
-    e.preventDefault();
-    setIsThumbnailDragging(false);
-  };
-
+  // 썸네일 드래그 앤 드롭
+  const thumbnailDragHandlers = createDragHandlers(setIsThumbnailDragging);
   const handleThumbnailDrop = (e) => {
     e.preventDefault();
     setIsThumbnailDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) {
-      handleThumbnailSelect(file);
-    }
+    if (file) handleThumbnailSelect(file);
   };
 
+  // 파일 입력 변경
+  const handleFileInputChange = (e) => {
+    const files = e.target.files;
+    if (files.length > 0) handleFileSelect(files);
+  };
+
+  // 썸네일 입력 변경
   const handleThumbnailInputChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      handleThumbnailSelect(file);
-    }
+    if (file) handleThumbnailSelect(file);
   };
 
   const handleRemoveThumbnail = () => {
@@ -215,104 +232,55 @@ export default function CreateContentPage({ params }) {
     }
   };
 
-  // 이미지 업로드 핸들러
-  const handleImageUpload = async (file) => {
-    validateFileSize(file, '이미지');
-    
-    const dataUrl = await fileToDataUrl(file);
+  const handleRemoveFile = (index) => {
     setFormData(prev => ({
       ...prev,
-      pendingImages: [...prev.pendingImages, { file, dataUrl }]
+      files: prev.files.filter((_, i) => i !== index)
     }));
-    
-    return dataUrl;
   };
 
-  // ToastUI Editor 초기화
-  useEffect(() => {
-    if (!editorDivRef.current || editorRef.current) return;
-
-    editorRef.current = new Editor({
-      el: editorDivRef.current,
-      initialValue: formData.postBody || '',
-      previewStyle: 'vertical',
-      height: '600px',
-      initialEditType: 'wysiwyg',
-      hideModeSwitch: true,
-      usageStatistics: false,
-      toolbarItems: [
-        ['heading', 'bold', 'italic', 'strike'],
-        ['hr', 'quote'],
-        ['ul', 'ol', 'task', 'indent', 'outdent'],
-        ['table', 'image', 'link'],
-        ['code', 'codeblock'],
-      ],
-      hooks: {
-        addImageBlobHook: async (blob, callback) => {
-          try {
-            const file = new File([blob], `image-${Date.now()}.png`, { type: blob.type });
-            const imageUrl = await handleImageUpload(file);
-            callback(imageUrl, '이미지');
-          } catch (error) {
-            console.error('이미지 업로드 실패:', error);
-            callback('', '이미지 업로드 실패');
-          }
-        },
-      },
-    });
-
-    editorRef.current.on('change', () => {
-      if (editorRef.current) {
-        const markdown = editorRef.current.getMarkdown();
-        handleEditorChange(markdown);
+  // 파일 업로드 처리 (기존 URL 유지 또는 새 파일 업로드)
+  const processFileUploads = async () => {
+    const postFiles = [];
+    for (const file of formData.files) {
+      if (file.url) {
+        postFiles.push(file.url); // 기존 파일 (URL)
+      } else if (file instanceof File) {
+        // 새로운 파일 업로드
+        const fileUrl = file.type.startsWith('image/') 
+          ? await uploadImage(file) 
+          : await uploadVideo(file);
+        postFiles.push(fileUrl);
       }
-    });
+    }
+    return postFiles;
+  };
 
-    return () => {
-      if (editorRef.current) {
-        editorRef.current.destroy();
-        editorRef.current = null;
+  // 요청 데이터 생성
+  const buildRequestData = (thumbnailUrl, postFiles) => {
+    const requestData = {
+      title: formData.title,
+      description: formData.description,
+      category: formData.category,
+      thumbnailUrl: thumbnailUrl,
+      post: {
+        body: formData.body,
+        postFiles: postFiles
       }
     };
-  }, []);
 
-  // postBody 변경 시 에디터 업데이트
-  useEffect(() => {
-    if (editorRef.current && formData.postBody !== undefined) {
-      const currentMarkdown = editorRef.current.getMarkdown();
-      if (currentMarkdown !== formData.postBody) {
-        editorRef.current.setMarkdown(formData.postBody);
+    // 유료 콘텐츠인 경우 planId 또는 price 설정
+    if (formData.type === 'paid') {
+      if (formData.paymentType === 'subscription') {
+        requestData.planId = parseInt(formData.selectedPlanId);
+      } else {
+        requestData.price = parseInt(parsePrice(formData.price));
       }
     }
-  }, [formData.postBody]);
 
-  // 에디터 변경 핸들러
-  const handleEditorChange = (markdown) => {
-    // 마크다운에서 이미지 URL 추출 (data URL 제외)
-    const imageUrlRegex = /!\[.*?\]\((.*?)\)/g;
-    const imageUrls = [];
-    
-    let match;
-    while ((match = imageUrlRegex.exec(markdown)) !== null) {
-      const url = match[1];
-      if (url && !url.startsWith('data:')) {
-        imageUrls.push(url);
-      }
-    }
-    
-    const updatedPostFiles = formData.postFiles.filter(url => 
-      imageUrls.includes(url) || !url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-    );
-    const newMediaUrls = imageUrls.filter(url => !updatedPostFiles.includes(url));
-    
-    setFormData(prev => ({
-      ...prev,
-      postBody: markdown,
-      postFiles: [...updatedPostFiles, ...newMediaUrls]
-    }));
+    return requestData;
   };
 
-  // 제출 핸들러
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -321,71 +289,38 @@ export default function CreateContentPage({ params }) {
       return;
     }
     
-    if (!formData.postBody || formData.postBody.trim() === '') {
-      alert('콘텐츠 내용을 입력해주세요.');
+    if (!formData.body || formData.body.trim() === '') {
+      alert('본문을 입력해주세요.');
       return;
+    }
+
+    // 유료 콘텐츠 검증
+    if (formData.type === 'paid') {
+      if (formData.paymentType === 'subscription' && !formData.selectedPlanId) {
+        alert('구독 플랜을 선택해주세요.');
+        return;
+      }
+      if (formData.paymentType === 'one-time' && !formData.price) {
+        alert('가격을 입력해주세요.');
+        return;
+      }
     }
 
     try {
       setLoading(true);
       
-      // 썸네일 업로드
+      // 썸네일 업로드 (새 파일이 있고 data URL일 때만)
       let thumbnailUrl = formData.thumbnailUrl;
       if (formData.thumbnail && thumbnailUrl.startsWith('data:')) {
         thumbnailUrl = await uploadImage(formData.thumbnail);
       }
 
-      // 에디터의 data URL을 실제 URL로 교체
-      let finalPostBody = formData.postBody;
-      const allPostFiles = [];
+      // 파일 업로드 처리
+      const postFiles = await processFileUploads();
 
-      // 대기 중인 이미지 업로드
-      for (const { file, dataUrl } of formData.pendingImages) {
-        if (finalPostBody.includes(dataUrl)) {
-          const actualUrl = await uploadImage(file);
-          allPostFiles.push(actualUrl);
-          finalPostBody = finalPostBody.replace(
-            new RegExp(dataUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), 
-            actualUrl
-          );
-        }
-      }
+      // 요청 데이터 생성
+      const requestData = buildRequestData(thumbnailUrl, postFiles);
 
-      // 이미 업로드된 URL들도 추가
-      const imageUrlRegex = /!\[.*?\]\((.*?)\)/g;
-      const existingImageUrls = [];
-      
-      let match;
-      while ((match = imageUrlRegex.exec(finalPostBody)) !== null) {
-        const url = match[1];
-        if (url && !url.startsWith('data:') && !url.startsWith('blob:')) {
-          existingImageUrls.push(url);
-        }
-      }
-      
-      const allMediaUrls = [...new Set([...allPostFiles, ...existingImageUrls])];
-
-      const requestData = {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        thumbnailUrl: thumbnailUrl,
-        post: {
-          body: finalPostBody,
-          postFiles: allMediaUrls
-        }
-      };
-
-      // 유료 콘텐츠인 경우
-      if (formData.type === 'paid') {
-        if (formData.paymentType === 'subscription') {
-          requestData.planId = parseInt(formData.selectedPlanId);
-        } else {
-          requestData.price = parseInt(parsePrice(formData.price));
-        }
-      }
-
-      // [TODO] currentCreatorId를 실제 인증 정보에서 가져와야 함
       if (isEditMode && contentId) {
         await updateContent(contentId, requestData);
         router.push(`/contents/${contentId}`);
@@ -404,10 +339,18 @@ export default function CreateContentPage({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <Link
-            href={`/creators/${creator.id}`}
+      {!creator ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-black mb-4">크리에이터로 로그인해야 테스트 가능</h1>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* 페이지 헤더 */}
+          <div className="mb-8">
+            <Link
+              href={`/creators/${creator.id}`}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-black transition mb-4"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,6 +366,7 @@ export default function CreateContentPage({ params }) {
           </p>
         </div>
 
+        {/* 폼 */}
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-8 space-y-6">
           {/* 제목 */}
           <div>
@@ -484,8 +428,7 @@ export default function CreateContentPage({ params }) {
               </div>
             ) : (
               <div
-                onDragOver={handleThumbnailDragOver}
-                onDragLeave={handleThumbnailDragLeave}
+                {...thumbnailDragHandlers}
                 onDrop={handleThumbnailDrop}
                 onClick={() => thumbnailInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition ${
@@ -524,31 +467,33 @@ export default function CreateContentPage({ params }) {
             )}
           </div>
 
-          {/* 콘텐츠 유형 */}
+          {/* 무료/유료 선택 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               콘텐츠 유형 <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className={`flex items-center gap-2 ${isEditMode ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                 <input
                   type="radio"
                   name="type"
                   value="free"
                   checked={formData.type === 'free'}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-black focus:ring-black"
+                  disabled={isEditMode}
+                  className="w-4 h-4 text-black focus:ring-black disabled:cursor-not-allowed"
                 />
                 <span className="text-gray-700">무료</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className={`flex items-center gap-2 ${isEditMode ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                 <input
                   type="radio"
                   name="type"
                   value="paid"
                   checked={formData.type === 'paid'}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-black focus:ring-black"
+                  disabled={isEditMode}
+                  className="w-4 h-4 text-black focus:ring-black disabled:cursor-not-allowed"
                 />
                 <span className="text-gray-700">유료</span>
               </label>
@@ -563,25 +508,27 @@ export default function CreateContentPage({ params }) {
                   결제 유형 <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className={`flex items-center gap-2 ${isEditMode ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                     <input
                       type="radio"
                       name="paymentType"
                       value="subscription"
                       checked={formData.paymentType === 'subscription'}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-black focus:ring-black"
+                      disabled={isEditMode}
+                      className="w-4 h-4 text-black focus:ring-black disabled:cursor-not-allowed"
                     />
                     <span className="text-gray-700">구독</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className={`flex items-center gap-2 ${isEditMode ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                     <input
                       type="radio"
                       name="paymentType"
                       value="one-time"
                       checked={formData.paymentType === 'one-time'}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-black focus:ring-black"
+                      disabled={isEditMode}
+                      className="w-4 h-4 text-black focus:ring-black disabled:cursor-not-allowed"
                     />
                     <span className="text-gray-700">단건 결제</span>
                   </label>
@@ -589,7 +536,6 @@ export default function CreateContentPage({ params }) {
               </div>
 
               {/* 구독 선택 시 플랜 드롭다운 */}
-              {/* [TODO] 플랜 담당자가 API 작업 완료 후 subscriptionPlans 사용 */}
               {formData.paymentType === 'subscription' && creator.subscriptionPlans && creator.subscriptionPlans.length > 0 && (
                 <div>
                   <label htmlFor="selectedPlanId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -602,7 +548,8 @@ export default function CreateContentPage({ params }) {
                       value={formData.selectedPlanId || ''}
                       onChange={handleInputChange}
                       required
-                      className={`w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white ${
+                      disabled={isEditMode}
+                      className={`w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed ${
                         !formData.selectedPlanId ? 'text-gray-400' : 'text-gray-900'
                       }`}
                     >
@@ -643,7 +590,8 @@ export default function CreateContentPage({ params }) {
                         }
                       }}
                       required
-                      className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      disabled={isEditMode}
+                      className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right bg-white disabled:bg-gray-100 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       placeholder="가격을 입력하세요"
                     />
                     <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">
@@ -683,15 +631,104 @@ export default function CreateContentPage({ params }) {
             </div>
           </div>
 
-          {/* 콘텐츠 내용 */}
+          {/* 파일 업로드 (드래그 앤 드롭) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              콘텐츠 내용 <span className="text-red-500">*</span>
+              동영상/사진 <span className="text-red-500">*</span>
             </label>
-            
-            <div className="toastui-editor-wrapper">
-              <div ref={editorDivRef} />
+            <div
+              {...fileDragHandlers}
+              onDrop={handleFileDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition ${
+                isDragging
+                  ? 'border-black bg-gray-50'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
+              <svg
+                className="w-12 h-12 mx-auto text-gray-400 mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              <p className="text-gray-600 mb-2">
+                파일을 드래그하여 놓거나 클릭하여 선택하세요
+              </p>
+              <p className="text-sm text-gray-500">
+                동영상 또는 사진 파일을 업로드할 수 있습니다
+              </p>
             </div>
+
+            {/* 업로드된 파일 목록 */}
+            {formData.files.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {formData.files.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                      {file.size > 0 && (
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </span>
+                      )}
+                      {file.url && (
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          (기존 파일)
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(index)}
+                      className="ml-4 text-red-500 hover:text-red-700 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 본문 */}
+          <div>
+            <label htmlFor="body" className="block text-sm font-medium text-gray-700 mb-2">
+              본문 <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="body"
+              name="body"
+              value={formData.body}
+              onChange={handleInputChange}
+              required
+              rows={6}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none"
+              placeholder="콘텐츠에 대한 본문을 입력하세요"
+            />
           </div>
 
           {/* 제출 버튼 */}
@@ -711,7 +748,8 @@ export default function CreateContentPage({ params }) {
             </button>
           </div>
         </form>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

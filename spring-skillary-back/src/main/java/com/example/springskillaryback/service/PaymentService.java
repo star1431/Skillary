@@ -1,11 +1,35 @@
 package com.example.springskillaryback.service;
 
+import com.example.springskillaryback.common.dto.CompleteBillingRequestDto;
+import com.example.springskillaryback.common.dto.CompletePaymentRequestDto;
+import com.example.springskillaryback.domain.Card;
+import com.example.springskillaryback.domain.Order;
+import com.example.springskillaryback.domain.Payment;
+import org.springframework.data.domain.Page;
+
 public interface PaymentService {
-	void saveSubscriptionOrder(byte planId);
+	String getCustomerKey(Byte userId);
 
-	void saveContentOrder(byte contentId);
+	/* Card */
+	Card createCard(Byte userId, String customerKey, String authKey);
 
-	void completePayment(String paymentKey, String orderId, int credit);
+	Page<Card> pagingCards(Byte userId, int page, int size);
 
-	// activateSubscription 은 SubscriptionService 에서 해야 함 여기 선언하면 안돼요...........
+	void withdrawCard(Byte userId, byte cardId);
+
+	/* Order */
+	Order paymentOrder(Byte userId, byte contentId);
+
+	Order billingOrder(Byte userId, byte planId);
+
+	Page<Order> pagingOrders(Byte userId, int page, int size);
+
+	Order retrieveOrder(Byte userId, String orderId);
+
+	/* Payment */
+	Page<Payment> pagingPayments(Byte userId, int page, int size);
+
+	Payment completeBilling(Byte userId, CompleteBillingRequestDto completeBillingRequestDto);
+
+	Payment completePayment(Byte userId, CompletePaymentRequestDto completePaymentRequestDto);
 }

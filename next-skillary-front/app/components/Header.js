@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import Alert from './Alert';
 import { silentRefresh, logout as apiLogout } from '../api/auth';
 
 export default function Header() {
+  const router = useRouter();
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -14,16 +15,6 @@ export default function Header() {
   // → 초기값을 false(비로그인)로 두고, refresh 성공 시에만 true로 전환
   const [isAuthed, setIsAuthed] = useState(false);
   const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    // 네트워크 호출 없이도(루트에서 refresh 호출 방지) 로그인 UI 상태를 유지하기 위한 플래그
-    try {
-      const v = localStorage.getItem('isAuthed');
-      setIsAuthed(v === '1');
-    } catch {
-      // ignore
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -41,45 +32,22 @@ export default function Header() {
     };
   }, [isDropdownOpen]);
 
-  // NOTE:
-  // - 페이지 로드시 refresh 호출을 막아서(루트 포함) "클릭하기 전에는" 네트워크/콘솔에 401이 뜨지 않게 함
-  // - 필요할 때(드롭다운 열 때)만 아래에서 silentRefresh() 호출
-  /*
   useEffect(() => {
     // httpOnly 쿠키라 FE에서 직접 확인 불가 → refresh로 로그인 여부 판별(201=로그인, 401=비로그인)
     const check = async () => {
-      // 로그인/회원가입 페이지에서는 refresh 호출 자체를 하지 않음(401 요청이 콘솔/네트워크에 뜨는 것 방지)
-      if (pathname === '/auth/login' || pathname === '/auth/register') return;
+      // 로그인/회원가입 페이지는 공개 페이지 → 로그인 체크 요청 자체를 보내지 않음
+      if (pathname === '/auth/login' || pathname === '/auth/register') {
+        setIsAuthed(false);
+        return;
+      }
       const ok = await silentRefresh();
-      setIsAuthed(!!ok);
+      setIsAuthed(ok);
     };
     check();
   }, [pathname]);
-  */
 
   const handleToggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
-  };
-
-  const handleOpenDropdown = async () => {
-    // 로그인/회원가입 페이지에서는 refresh 호출 자체를 하지 않음(401 요청이 콘솔/네트워크에 뜨는 것 방지)
-    if (pathname === '/auth/login' || pathname === '/auth/register') {
-      setIsAuthed(false);
-      try {
-        localStorage.removeItem('isAuthed');
-      } catch {
-        // ignore
-      }
-      return;
-    }
-    const ok = await silentRefresh();
-    setIsAuthed(!!ok);
-    try {
-      if (ok) localStorage.setItem('isAuthed', '1');
-      else localStorage.removeItem('isAuthed');
-    } catch {
-      // ignore
-    }
   };
 
   const handleLogout = async () => {
@@ -87,11 +55,9 @@ export default function Header() {
       await apiLogout();
     } finally {
       setIsAuthed(false);
-      try {
-        localStorage.removeItem('isAuthed');
-      } catch {
-        // ignore
-      }
+      setIsAlertOpen(false);
+      setIsDropdownOpen(false);
+      router.replace('/');
     }
   };
 
@@ -144,8 +110,6 @@ export default function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => {
-                    // 드롭다운을 "열 때만" 로그인 상태 체크
-                    if (!isDropdownOpen) handleOpenDropdown();
                     handleToggleDropdown();
                     if (isAlertOpen) {
                       setIsAlertOpen(false);
@@ -161,22 +125,21 @@ export default function Header() {
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                     {isAuthed ? (
                       <>
-                    <Link
-                      href="/auth/my-page"
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                        <Link
+                          href="/auth/my-page"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
                           onClick={() => setIsDropdownOpen(false)}
-                    >
-                      마이페이지
-                    </Link>
-                    <button
+                        >
+                          마이페이지
+                        </Link>
+                        <button
                           onClick={async () => {
                             await handleLogout();
-                        setIsDropdownOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
-                    >
-                      로그아웃
-                    </button>
+                          }}
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                        >
+                          로그아웃
+                        </button>
                       </>
                     ) : (
                       <>

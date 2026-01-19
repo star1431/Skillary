@@ -1,5 +1,6 @@
 package com.example.springskillaryback.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import com.example.springskillaryback.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,11 @@ import java.util.List;
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	@Value("${CORS_ALLOWED_ORIGINS}")
+	private List<String> allowedOrigins;
+  
+  private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
 		// 요청 권한 설정
@@ -32,9 +37,9 @@ public class SecurityConfig {
                                 "/api/auth/check-nickname", "/api/contents/**", "/api/subscriptions/**"
                         ).permitAll()
                         .anyRequest().authenticated()
-                )
-                .cors(cors -> cors.configurationSource(configurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
+				)
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+				.csrf(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
 				.httpBasic(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtAuthenticationFilter,
@@ -48,34 +53,20 @@ public class SecurityConfig {
 				.build();
 	}
 
-    @Bean
-    public CorsConfigurationSource configurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowCredentials(true);
-        // 허용 도메인
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:3000",
-                "http://localhost:8080"
-        ));
+	// CORS 설정을 위한 Bean 추가
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(List.of("http://localhost:3000")); // 프론트 주소 허용
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("*"));
+		configuration.setAllowCredentials(true);
+    configuration.setMaxAge(3600L);
+  
+    configuration.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
 
-        // 허용 HTTP 메서드
-        configuration.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
-        ));
-
-        // 허용 헤더
-        configuration.setAllowedHeaders(List.of("*"));
-
-        // 노출 헤더
-        configuration.setExposedHeaders(List.of(
-                "Authorization", "Set-Cookie"
-        ));
-
-        configuration.setMaxAge(3600L);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-
-        return source;
-    }
-
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
+  }
 }

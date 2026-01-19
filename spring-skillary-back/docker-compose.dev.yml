@@ -8,7 +8,6 @@ services:
     volumes:
       - ./src:/app/src
       - ./build:/app/build
-      - .gradle:/home/gradle/.gradle
     image: spring-skillary:1.0
     ports:
       - "8080:8080"
@@ -27,10 +26,10 @@ services:
       resources:
         limits:
           cpus: '2'
-          memory: 512M
+          memory: 1G
         reservations:
           cpus: '1'
-          memory: 256M
+          memory: 512M
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s

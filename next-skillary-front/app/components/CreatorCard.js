@@ -6,10 +6,16 @@ export default function CreatorCard({
   category,
   description,
   subscribers,
-  avatar
+  avatar,
+  isDeleted = false
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow flex flex-col h-full">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow flex flex-col h-full relative">
+      {isDeleted && (
+        <div className="absolute top-4 right-4 bg-red-100 text-red-700 text-xs font-semibold px-2 py-1 rounded">
+          삭제 예정
+        </div>
+      )}
       <div className="flex flex-col items-center mb-4">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 mb-4 overflow-hidden">
           {avatar ? (

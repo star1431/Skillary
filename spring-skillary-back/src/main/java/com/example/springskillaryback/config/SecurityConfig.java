@@ -31,10 +31,12 @@ public class SecurityConfig {
 		// 요청 권한 설정
 		return http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/api/creators/me").authenticated() // creator/me
+                        .requestMatchers(HttpMethod.GET, "/api/creators", "/api/creators/*").permitAll() // creators, creator/{id}
                         .requestMatchers("/error", "/api/auth/register", "/api/auth/login"
-                                , "/api/auth/send-confirm", "/api/auth/send-code"
-                                , "/api/auth/refresh", "/api/auth/logout", "/api/creators/profile/*",
-                                "/api/auth/check-nickname", "/api/contents/**", "/api/subscriptions/**"
+                                , "/api/auth/send-confirm", "/api/auth/send-code", "/api/auth/check-nickname"
+                                , "/api/auth/refresh", "/api/auth/logout"
+                                , "/api/contents/**", "/api/subscriptions/**"
                         ).permitAll()
                         .anyRequest().authenticated()
 				)

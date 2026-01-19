@@ -1,24 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CreatorCard from '../components/CreatorCard';
-import { creators, categories } from './components/data';
+import { listCreators } from '../api/creator';
 
 export default function CreatorsPage() {
   const [selectedCategory, setSelectedCategory] = useState('전체 카테고리');
   const [searchQuery, setSearchQuery] = useState('');
+  const [creators, setCreators] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const handleSearch = () => {
     // TODO: 검색 로직 구현
   };
-
   const handleCategoryChange = () => {
     // TODO: 카테고리 변경 로직 구현
   };
+  
+  // NOTE: 카테고리는 추후 구현 예정이라 현재는 null로 운용(필터도 "데이터 있을 때만" 적용)
+  const categories = useMemo(() => ['전체 카테고리', '개발/프로그래밍', '디자인', '마케팅', '비즈니스'], []);
 
-  const filteredCreators = selectedCategory === '전체 카테고리'
-    ? creators
-    : creators.filter(creator => creator.category === selectedCategory);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError('');
+        const res = await listCreators();
+        if (!alive) return;
+        setCreators(Array.isArray(res) ? res : []);
+      } catch (err) {
+        if (!alive) return;
+        setCreators([]);
+        setLoadError(err?.message || '크리에이터 목록을 불러오지 못했습니다.');
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const filteredCreators = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return creators
+      .filter((c) => {
+        if (!q) return true;
+        const name = String(c?.displayName ?? '').toLowerCase();
+        return name.includes(q);
+      })
+      .filter((c) => {
+        if (selectedCategory === '전체 카테고리') return true;
+        // 카테고리 데이터가 없으면(현재는 null) 필터를 적용하지 않음
+        const cat = c?.category;
+        if (!cat) return true;
+        return cat === selectedCategory;
+      });
+  }, [creators, searchQuery, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,21 +115,28 @@ export default function CreatorsPage() {
 
           {/* 크리에이터 수 */}
           <p className="text-gray-600 text-sm">
-            {filteredCreators.length}명의 크리에이터
+            {loading ? '로딩 중...' : `${filteredCreators.length}명의 크리에이터`}
           </p>
         </div>
+
+        {loadError && (
+          <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
+            {loadError}
+          </div>
+        )}
 
         {/* 크리에이터 그리드 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredCreators.map((creator) => (
             <CreatorCard
-              key={creator.id}
-              id={creator.id}
-              name={creator.name}
-              category={creator.category}
-              description={creator.description}
-              subscribers={creator.subscribers}
-              avatar={creator.avatar}
+              key={creator.creatorId}
+              id={creator.creatorId}
+              name={creator.displayName}
+              category={null}
+              description={creator.introduction ?? ''}
+              subscribers={`${creator.followCount ?? 0}명`}
+              avatar={creator.profile}
+              isDeleted={creator.isDeleted}
             />
           ))}
         </div>

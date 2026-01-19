@@ -1,6 +1,8 @@
 package com.example.springskillaryback.service.impl;
 
 import com.example.springskillaryback.common.dto.CreateCreatorRequest;
+import com.example.springskillaryback.common.dto.CreatorDetailResponse;
+import com.example.springskillaryback.common.dto.CreatorProfileResponse;
 import com.example.springskillaryback.common.dto.MyCreatorResponse;
 import com.example.springskillaryback.common.dto.UpdateCreatorRequest;
 import com.example.springskillaryback.domain.Creator;
@@ -17,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -96,5 +100,38 @@ public class CreatorServiceImpi implements CreatorService {
     private String normalizeOptional(String value) {
         if (!StringUtils.hasText(value)) return null;
         return value.trim();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CreatorProfileResponse> listCreators() {
+        return creatorRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(c -> new CreatorProfileResponse(
+                        c.getCreatorId(),
+                        c.getDisplayName(),
+                        c.getIntroduction(),
+                        c.getProfile(),
+                        c.getFollowCount(),
+                        c.isDeleted()
+                ))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CreatorDetailResponse getCreatorDetail(Byte creatorId) {
+        Creator c = creatorRepository.findById(creatorId)
+                .orElseThrow(() -> new IllegalArgumentException("크리에이터가 존재하지 않습니다"));
+
+        return new CreatorDetailResponse(
+                c.getCreatorId(),
+                c.getDisplayName(),
+                c.getIntroduction(),
+                c.getProfile(),
+                c.getFollowCount(),
+                c.getCreatedAt(),
+                c.isDeleted()
+        );
     }
 }

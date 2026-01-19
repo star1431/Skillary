@@ -23,31 +23,4 @@ public class SpringSkillaryBackApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SpringSkillaryBackApplication.class, args);
 	}
-
-	@Bean
-	public CommandLineRunner cml(
-			SubscriptionPlanRepository subscriptionPlanRepository,
-			CreatorRepository creatorRepository,
-			UserRepository userRepository,
-			SubscribeRepository subscribeRepository
-	) {
-		return args -> {
-			var user = userRepository.save(User.builder()
-			                                   .email("email@email.com")
-			                                   .password("1234")
-			                                   .nickname("hello")
-			                                   .build());
-			var creator = creatorRepository.save(Creator.builder()
-			                                            .displayName("테스트 이름")
-			                                            .user(user)
-			                                            .build());
-			var subscriptionPlan = subscriptionPlanRepository.save(SubscriptionPlan.builder()
-			                                                                       .name("테스트")
-			                                                                       .price(100)
-			                                                                       .creator(creator)
-			                                                                       .build());
-
-			var subscribe = subscribeRepository.save(new Subscribe(user, subscriptionPlan));
-		};
-	}
 }

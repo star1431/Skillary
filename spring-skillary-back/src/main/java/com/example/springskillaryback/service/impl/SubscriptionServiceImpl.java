@@ -42,17 +42,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
 	@Override
 	public void deleteSubscribe(byte userId, byte subscriptionPlan) {
-		System.out.println("\n\n\n\n" + userId + "\n" + subscriptionPlan + "\n\n\n\n");
 		User user = findUserOrElseThrow(userId);
-		System.out.println("\n\n\n\n" + user + "\n\n\n\n");
 		Subscribe subscribe = user.getSubscribe(subscriptionPlan)
 		                          .orElseThrow(() -> new IllegalArgumentException("해당 회원은 구독하고 있지 않습니다."));
-		System.out.println("\n\n\n\n" + subscribe + "\n\n\n\n");
 		if (!subscribe.isActive())
 			throw new IllegalArgumentException("구독 중이 아닙니다.");
 
 		subscribe.inactive();
-		System.out.println("\n\n\n\n" + subscribe.getSubscribeStatus() + "\n\n\n\n");
 	}
 
 	@Override

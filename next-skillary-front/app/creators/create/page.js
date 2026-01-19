@@ -1,9 +1,25 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiCreateCreator, apiGetMe, apiUpdateUserMe, uploadProfileImage } from '../../api/my-page';
 
+/**
+ * 크리에이터 생성 페이지
+ *
+ * 정책(= test 페이지와 동일한 동기화 룰)
+ * - creator.displayName 은 user.nickname 과 동기화
+ * - creator.profile 은 user.profile 과 동기화
+ *
+ * 백엔드 CreateCreatorRequest는 nickname을 받지 않아서,
+ * 1) 먼저 /users/me 로 nickname/profile 업데이트
+ * 2) 그 다음 /creators 로 introduction/bank/account/profile 생성
+ *
+ * 선택값(Nullable)
+ * - introduction/bankName/accountNumber는 빈 값이면 null로 전송
+ * - profile은 "새 이미지 업로드" 또는 "기존 user.profile"을 사용
+ */
 export default function CreateCreatorPage() {
   const router = useRouter();
   const thumbnailInputRef = useRef(null);
@@ -11,9 +27,38 @@ export default function CreateCreatorPage() {
     name: '',
     description: '',
     bio: '',
+    bankName: '',
+    accountNumber: '',
     thumbnail: null
   });
   const [isThumbnailDragging, setIsThumbnailDragging] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [meProfileUrl, setMeProfileUrl] = useState('');
+
+  // 생성 페이지 진입 시 user 정보로 기본값 채움(닉네임/프로필)
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const me = await apiGetMe();
+        if (!alive) return;
+        setFormData((prev) => ({
+          ...prev,
+          // 사용자가 이미 입력을 시작했을 수도 있으니, 비어있을 때만 채움
+          name: prev.name || me?.nickname || '',
+        }));
+        setMeProfileUrl(me?.profile || '');
+      } catch {
+        // 비로그인/토큰없음 등은 여기서 막지 않고 기존 플로우 유지
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // 공백 문자열 -> null 로 정규화(백엔드 nullable 필드 대응)
+  const asNullable = (v) => (String(v ?? '').trim() ? String(v).trim() : null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -68,13 +113,43 @@ export default function CreateCreatorPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: 크리에이터 생성 API 호출
-    console.log('크리에이터 생성 제출:', formData);
-    // 성공 시 생성된 크리에이터 프로필 페이지로 이동
-    // router.push(`/creators/${createdCreatorId}`);
-    router.push('/creators');
+    try {
+      setSaving(true);
+
+      // 1) 프로필 이미지 결정
+      // - 새 이미지를 선택했으면 업로드 URL 사용
+      // - 아니면 기존 유저 프로필 URL을 그대로 사용
+      let profileUrl = null;
+      if (formData.thumbnail) {
+        profileUrl = await uploadProfileImage(formData.thumbnail);
+      } else if (meProfileUrl) {
+        // 새로 업로드하지 않으면 기존 user.profile 사용
+        profileUrl = meProfileUrl;
+      }
+
+      // 2) 유저 업데이트(동기화 대상)
+      // - 백엔드 CreateCreatorRequest에는 nickname이 없어서, 유저 수정 API를 먼저 호출
+      await apiUpdateUserMe({
+        nickname: formData.name,
+        profile: profileUrl, // null이면 변경 안 함
+      });
+
+      // 3) 크리에이터 생성(선택 필드들은 null 허용)
+      await apiCreateCreator({
+        introduction: asNullable(formData.bio),
+        profile: profileUrl,
+        bankName: asNullable(formData.bankName),
+        accountNumber: asNullable(formData.accountNumber),
+      });
+
+      router.push('/auth/my-page');
+    } catch (err) {
+      alert(err?.message || '크리에이터 생성에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -138,6 +213,33 @@ export default function CreateCreatorPage() {
                   </svg>
                 </button>
               </div>
+            ) : meProfileUrl ? (
+              <div className="flex items-center gap-6">
+                <div className="w-32 h-32 rounded-full overflow-hidden border border-gray-300">
+                  <img
+                    src={meProfileUrl}
+                    alt="현재 프로필"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition text-sm"
+                  >
+                    이미지 변경
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">현재 유저 프로필 이미지를 사용 중입니다</p>
+                </div>
+                <input
+                  ref={thumbnailInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailInputChange}
+                  className="hidden"
+                />
+              </div>
             ) : (
               <div
                 onDragOver={handleThumbnailDragOver}
@@ -183,18 +285,50 @@ export default function CreateCreatorPage() {
           {/* 상세 소개 */}
           <div>
             <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
-              상세 소개 <span className="text-red-500">*</span>
+              상세 소개
             </label>
             <textarea
               id="bio"
               name="bio"
               value={formData.bio}
               onChange={handleInputChange}
-              required
               rows={6}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none"
               placeholder="크리에이터에 대한 상세한 소개를 입력하세요"
             />
+          </div>
+
+          {/* 정산 정보(은행/계좌) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="bankName" className="block text-sm font-medium text-gray-700 mb-2">
+                은행명
+              </label>
+              <input
+                type="text"
+                id="bankName"
+                name="bankName"
+                value={formData.bankName}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                placeholder="예) KB국민은행"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                계좌번호
+              </label>
+              <input
+                type="text"
+                id="accountNumber"
+                name="accountNumber"
+                value={formData.accountNumber}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                placeholder="예) 123-456-789012"
+              />
+            </div>
           </div>
 
           {/* 제출 버튼 */}
@@ -207,7 +341,8 @@ export default function CreateCreatorPage() {
             </Link>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition"
+              disabled={saving}
+              className="flex-1 px-6 py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-60"
             >
               생성하기
             </button>

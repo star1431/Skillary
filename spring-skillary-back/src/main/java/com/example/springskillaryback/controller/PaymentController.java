@@ -96,6 +96,7 @@ public class PaymentController {
 	) {
 		Byte userId = Byte.valueOf((String) Objects.requireNonNull(authentication.getPrincipal()));
 		var contentId = paymentOrderRequestDto.contentId();
+		System.out.println("\n\n\n" + userId + "\n\n\n");
 		var order = paymentService.paymentOrder(userId, contentId);
 		return ResponseEntity.status(HttpStatus.CREATED)
 		                     .body(PaymentOrderResponseDto.from(order));

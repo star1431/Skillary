@@ -67,4 +67,8 @@ public class Payment {
 		this.creditMethod = creditMethod;
 		this.user = user;
 	}
+
+	public Creator getCreator() {
+		return this.order.getCreator();
+	}
 }

@@ -38,16 +38,20 @@ public class SpringSkillaryBackApplication {
 			PasswordEncoder passwordEncoder
 	) {
 		return args -> {
-            String password = passwordEncoder.encode("1234");
-			var user = userRepository.save(User.builder()
+			var user2 = userRepository.save(User.builder()
 			                                   .email("email@email.com")
-			                                   .password(password)
+			                                   .password(passwordEncoder.encode("123456abc!"))
+			                                   .nickname("hello")
+			                                   .build());
+			var user = userRepository.save(User.builder()
+			                                   .email("email2@email.com")
+			                                   .password(passwordEncoder.encode("123456abc!"))
 			                                   .nickname("hello")
 			                                   .build());
 
             var user1 = userRepository.save(User.builder()
                                                 .email("email1@email.com")
-                                                .password(password)
+                                                .password(passwordEncoder.encode("123456abc!"))
                                                 .nickname("hello2")
                                                 .build());
 
@@ -72,6 +76,7 @@ public class SpringSkillaryBackApplication {
                                                         .description("콘텐츠소개")
 			                                            .price(1000)
 			                                            .creator(creator)
+			                                            .description("test")
 			                                            .category(CategoryEnum.IT)
 			                                            .build());
 

@@ -37,9 +37,14 @@ public class SettlementRun {
     @Column(length = 20, nullable = false)
 	private RunStatusEnum runStatus = RunStatusEnum.READY;
 
+	@Builder.Default
+	@Column(nullable = false)
+	private int totalAmount = 0;
+
 	@Column(nullable = false)
 	private LocalDate periodStart;
 
+	@Column(nullable = false)
 	private LocalDate periodEnd;
 
 	private LocalDateTime executedAt;
@@ -48,4 +53,24 @@ public class SettlementRun {
 	@OneToMany
 	@JoinColumn(name = "run_id")
 	private Set<CreatorSettlement> settlements = new HashSet<>();
+
+	public SettlementRun(LocalDate periodStart, LocalDate periodEnd) {
+		this.periodStart = periodStart;
+		this.periodEnd = periodEnd;
+	}
+
+	public void accumulate(int amount) {
+		this.totalAmount += amount;
+	}
+
+	public boolean isSettled() {
+		return this.runStatus == RunStatusEnum.DONE;
+	}
+	public void running() {
+		this.runStatus = RunStatusEnum.RUNNING;
+	}
+
+	public void complete() {
+		this.runStatus = RunStatusEnum.DONE;
+	}
 }

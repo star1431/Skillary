@@ -1,29 +1,73 @@
 import { baseRequest } from './api';
 
+
+export async function createSubscriptionPlan(planName, description, price) {
+  const result = await baseRequest(
+    'POST',
+    {},
+    '/subscriptions',
+    {
+      planName,
+      description,
+      price
+    },
+    "구독 플랜 생성 실패",
+    true
+  );
+  return result;
+}
+
+export async function pagingSubscriptionPlans(page = 0, size = 10) {
+  const result = await baseRequest(
+    'GET',
+    {},
+    `/subscriptions/plans?page=${page}&size=${size}`,
+    null,
+    "구독 플랜 목록 불러오기 실패",
+    true
+  );
+  return result;
+}
+
 export async function getSubscriptions(
-  userId = 1,
   page = 0,
   size = 10
 ) {
   const result = await baseRequest(
     'GET',
     {},
-    `/subscriptions?userId=${userId}&page=${page}&size=${size}`,
-    null
+    `/subscriptions?page=${page}&size=${size}`,
+    null,
+    "구독 목록 불러오기 실패",
+    true
   );
   return result;
 }
 
+export async function deleteSubscriptionPlan(planId) {
+  const result = await baseRequest(
+    'DELETE',
+    {},
+    `/subscriptions/plans/${planId}`,
+    null,
+    "구독 플랜 삭제 실패",
+    true
+  );
+  
+  return result === null; 
+}
+
 // 구독 취소
 export async function unsubscribe (
-  userId = 1,
   planId = 1
 ) {
   const result = await baseRequest(
     'DELETE',
     {},
-    `/subscriptions/${planId}?userId=${userId}`,
-    null
+    `/subscriptions/${planId}`,
+    null,
+    "구독 해지 실패 문의해주세요",
+    true
   );
   return result === null;
 }

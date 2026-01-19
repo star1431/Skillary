@@ -1,22 +1,23 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
-  getCreatorPlans,     // 크리에이터가 생성한 플랜 목록 조회 API
-  deletePlan,          // 플랜 삭제 API
-  togglePlanStatus     // 플랜 활성화/비활성화 전환 API
-} from '@/api/plans'; 
+  pagingSubscriptionPlans,     // 크리에이터가 생성한 플랜 목록 조회 API
+  deleteSubscriptionPlan,          // 플랜 삭제 API
+} from '@/api/subscriptions'; 
 import Loading from '@/components/Loading';
 
-export default function CreatorPlanManagementPage() {
+export default function Plans() {
   const [plans, setPlans] = useState([]); // 크리에이터가 만든 플랜 목록
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // 1. 내가 만든 플랜 목록 불러오기
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const response = await getCreatorPlans();
+      const response = await pagingSubscriptionPlans();
       // response 예시: [{ id: 1, name: '베이직', price: 5000, active: true, subscriberCount: 12 }, ...]
       setPlans(response || []);
     } catch (error) {
@@ -36,7 +37,7 @@ export default function CreatorPlanManagementPage() {
 
     try {
       setLoading(true);
-      await deletePlan(planId);
+      await deleteSubscriptionPlan(planId);
       alert('플랜이 삭제되었습니다.');
       fetchPlans();
     } catch (e) {
@@ -48,8 +49,7 @@ export default function CreatorPlanManagementPage() {
 
   // 3. 신규 플랜 생성 페이지로 이동 (또는 모달 열기)
   const handleCreatePlan = () => {
-    // 플랜 생성 폼 페이지로 이동하거나 모달을 띄우는 로직
-    window.location.href = '/plans/new'; 
+    router('/plans/create');
   };
 
   if (loading) return <Loading loadingMessage='플랜 목록을 불러오는 중입니다...' />;

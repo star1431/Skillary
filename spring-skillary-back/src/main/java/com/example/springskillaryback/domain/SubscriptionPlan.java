@@ -46,4 +46,12 @@ public class SubscriptionPlan {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "creator_id", nullable = false)
 	private Creator creator;
+
+	public SubscriptionPlan(String name, String description, int price, Creator creator) {
+		this.name = name;
+		this.description = description;
+		this.price = price;
+		this.creator = creator;
+		this.isActive = true;
+	}
 }

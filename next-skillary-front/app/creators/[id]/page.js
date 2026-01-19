@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useState, use, useEffect, useRef } from 'react';
 import { creators } from '../components/data';
 import PopularCard from '../../components/PopularCard';
-import { requstPaymentOrder } from '@/api/orders';
 import { getContentsByCreator } from '../../api/contents';
 
 export default function CreatorProfilePage({ params }) {

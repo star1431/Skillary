@@ -111,6 +111,12 @@ export default function MyPage() {
                   정산 내역
                 </Link>
                 <Link
+                  href="/subscriptions"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                >
+                  구독 목록
+                </Link>
+                <Link
                   href="/auth/my-page/setting"
                   className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition"
                 >

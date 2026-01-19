@@ -9,7 +9,7 @@ public record SubscribeResponseDto(
 		Byte subscribeId,
 		SubscribeStatusEnum status,
 		LocalDateTime startAt,
-		LocalDateTime endAt,
+		String endAt,
 		String planName,
 		int price,
 		String creatorDisplayName,
@@ -23,7 +23,7 @@ public record SubscribeResponseDto(
 				subscribe.getSubscribeId(),
 				subscribe.getSubscribeStatus(),
 				subscribe.getStartAt(),
-				subscribe.getEndAt(),
+				subscribe.getEndAt().toLocalDate().toString(), // 변환된 문자열 주입
 				plan.getName(),
 				plan.getPrice(),
 				creator.getDisplayName(),

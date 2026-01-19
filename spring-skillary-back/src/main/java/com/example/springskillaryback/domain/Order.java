@@ -13,10 +13,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.data.annotation.LastModifiedDate;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -26,6 +29,7 @@ import static jakarta.persistence.EnumType.STRING;
 @Entity
 @Builder
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Order {
@@ -50,6 +54,9 @@ public class Order {
 
 	@CreationTimestamp
 	private LocalDateTime createdAt;
+
+	@LastModifiedDate
+	private LocalDate updatedAt;
 
 	@Column(nullable = false)
 	private LocalDateTime expiredAt;

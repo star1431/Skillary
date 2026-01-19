@@ -1,20 +1,42 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getSubscriptions, unsubscribe } from '@/api/subscriptions'; // 제공해주신 API 함수
+import { getSubscriptions, unsubscribe } from '@/api/subscriptions';
 import Loading from '@/components/Loading';
+
+// 컴포넌트 외부에서 관리하는 것이 렌더링 성능에 좋습니다.
+const STATUS_MAP = {
+  ACTIVE: {
+    label: "이용 중",
+    className: "bg-blue-50 text-blue-600",
+    dateLabel: "다음 결제 예정일",
+  },
+  INACTIVE: {
+    label: "해지 예약",
+    className: "bg-orange-50 text-orange-600",
+    dateLabel: "이용 종료 예정일",
+  },
+  CANCELED: {
+    label: "기간 만료",
+    className: "bg-gray-100 text-gray-500",
+    dateLabel: "만료일",
+  },
+  FAILED: {
+    label: "결제 실패",
+    className: "bg-red-50 text-red-600",
+    dateLabel: "결제 재시도 예정일",
+  }
+};
 
 export default function MySubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. 유저의 구독 목록 불러오기
   const fetchMySubscriptions = async () => {
     try {
       setLoading(true);
       const response = await getSubscriptions(0, 10);
-      // Spring Page 객체로 올 경우 response.content, 배열로 올 경우 response 사용
-      setSubscriptions(response.content || response || []);
+      setSubscriptions(response.content || []);
     } catch (error) {
       console.error("구독 플랜 로딩 실패:", error);
     } finally {
@@ -26,7 +48,6 @@ export default function MySubscriptionsPage() {
     fetchMySubscriptions();
   }, []);
 
-  // 2. 구독 해지 핸들러
   const handleUnsubscribe = async (planId, planName) => {
     if (!confirm(`[${planName}] 구독을 해지하시겠습니까?\n해지 후에도 이번 결제 주기까지는 혜택이 유지됩니다.`)) return;
 
@@ -35,7 +56,7 @@ export default function MySubscriptionsPage() {
       const success = await unsubscribe(planId);
       if (success) {
         alert('구독 해지가 완료되었습니다.');
-        await fetchMySubscriptions(); // 목록 새로고침
+        await fetchMySubscriptions();
       }
     } catch (error) {
       console.error("해지 중 오류 발생:", error);
@@ -50,49 +71,59 @@ export default function MySubscriptionsPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-12">
         
-        {/* 헤더 섹션 */}
         <div className="mb-10">
           <h1 className="text-2xl font-bold text-gray-900">내 구독 관리</h1>
           <p className="text-gray-600 mt-2">현재 이용 중인 서비스와 구독 정보를 확인하세요.</p>
         </div>
 
-        {/* 구독 목록 */}
         <div className="space-y-4">
           {subscriptions.length > 0 ? (
-            subscriptions.map((sub) => (
-              <div key={sub.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-bold text-gray-900">{sub.planName}</h3>
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full font-semibold">이용 중</span>
-                      </div>
-                      <p className="text-gray-500 text-sm">{sub.description}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-gray-900">₩{sub.price?.toLocaleString()}</p>
-                      <p className="text-xs text-gray-400">/ 월결제</p>
-                    </div>
-                  </div>
+            subscriptions.map((sub) => {
+              // ✅ 백엔드 Enum 값에 맞는 매핑 데이터 추출
+              const statusConfig = STATUS_MAP[sub.status] || STATUS_MAP.CANCELED;
 
-                  <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center text-sm">
-                    <div>
-                      <span className="text-gray-500">다음 결제 예정일: </span>
-                      <span className="font-semibold text-gray-700">{sub.nextBillingDate || '2024-06-01'}</span>
+              return (
+                <div key={sub.subscribeId} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-bold text-gray-900">{sub.creatorDisplayName}</h3>
+                          {/* ✅ 상태별 뱃지 스타일/라벨 적용 */}
+                          <span className={`px-2 py-0.5 text-xs rounded-full font-semibold ${statusConfig.className}`}>
+                            {statusConfig.label}
+                          </span>
+                        </div>
+                        <p className="text-gray-500 text-sm">{sub.planName}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900">₩{sub.price?.toLocaleString()}</p>
+                        <p className="text-xs text-gray-400">/ 월결제</p>
+                      </div>
                     </div>
-                    <button 
-                      onClick={() => handleUnsubscribe(sub.id, sub.planName)}
-                      className="text-red-500 font-medium hover:text-red-700 transition"
-                    >
-                      구독 해지
-                    </button>
+
+                    <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center text-sm">
+                      <div>
+                        {/* ✅ 상태별 날짜 설명(Label) 적용 */}
+                        <span className="text-gray-500">{statusConfig.dateLabel}: </span>
+                        <span className="font-semibold text-gray-700">{sub.endAt}</span>
+                      </div>
+                      
+                      {/* ✅ 이용 중(ACTIVE)일 때만 해지 버튼 노출 */}
+                      {sub.status === 'ACTIVE' && (
+                        <button 
+                          onClick={() => handleUnsubscribe(sub.subscribeId, sub.planName)}
+                          className="text-red-500 font-medium hover:text-red-700 transition"
+                        >
+                          구독 해지
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
-            /* 빈 상태 (Empty State) */
             <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 text-gray-400 rounded-full mb-4">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,7 +142,6 @@ export default function MySubscriptionsPage() {
           )}
         </div>
 
-        {/* 도움말 안내 */}
         <div className="mt-10 p-5 bg-gray-100 rounded-2xl">
           <p className="text-xs text-gray-500 leading-relaxed">
             • 구독 해지 시, 이미 결제된 이번 달 혜택은 기간 종료일까지 유지됩니다.<br/>

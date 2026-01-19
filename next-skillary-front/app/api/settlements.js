@@ -8,8 +8,10 @@ export const getCreatorSettlements = async (page = 0, size = 10) => {
   return await baseRequest(
     'GET',
     {}, // 필요한 경우 { 'Authorization': `Bearer ${token}` } 추가
-    `/api/settlements?page=${page}&size=${size}`,
-    null
+    `/settlements?page=${page}&size=${size}`,
+    null,
+    "getCreatorSettlements 오류",
+    true
   );
 };
 
@@ -21,8 +23,10 @@ export const getSettlementDetail = async (settlementId) => {
   return await baseRequest(
     'GET',
     {},
-    `/api/settlements/${settlementId}`,
-    null
+    `/settlements/${settlementId}`,
+    null,
+    "getSettlementDetail 오류",
+    true
   );
 };
 
@@ -34,7 +38,9 @@ export const getAdminSettlementRuns = async (page = 0, size = 10) => {
   return await baseRequest(
     'GET',
     {},
-    `/api/settlements/admin?page=${page}&size=${size}`,
-    null
+    `/settlements/admin?page=${page}&size=${size}`,
+    null,
+    "getAdminSettlementRuns 오류",
+    true
   );
 };

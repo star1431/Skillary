@@ -279,12 +279,20 @@ export default function MyPage() {
                   결제 내역
                 </Link>
                 {isCreatorRole && (
-                  <Link
-                    href="/settlements/list"
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition"
-                  >
-                    정산 내역
-                  </Link>
+                  <>
+                    <Link
+                      href="/settlements/list"
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      정산 내역
+                    </Link>
+                    <Link
+                      href="/subscriptions/plans"
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      플랜 관리
+                    </Link>
+                  </>
                 )}
                 <Link
                   href="/subscriptions"

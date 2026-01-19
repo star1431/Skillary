@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 @Entity
 @Builder
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubscriptionPlan {
@@ -43,6 +45,8 @@ public class SubscriptionPlan {
 	@CreationTimestamp
 	private LocalDateTime createdAt;
 
+	private LocalDateTime deletedAt;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "creator_id", nullable = false)
 	private Creator creator;
@@ -57,5 +61,10 @@ public class SubscriptionPlan {
 
 	public void inactive() {
 		this.isActive = false;
+		this.deletedAt = LocalDateTime.now().plusMonths(2);
+	}
+
+	public boolean isInactive() {
+		return !this.isActive;
 	}
 }

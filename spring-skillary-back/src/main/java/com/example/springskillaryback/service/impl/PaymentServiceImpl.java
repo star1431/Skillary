@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -140,6 +141,8 @@ public class PaymentServiceImpl implements PaymentService {
 			CompleteBillingRequestDto completeBillingRequestDto
 	) {
 		Order order = findOrderOrElseThrow(completeBillingRequestDto.orderId());
+		if (order.getSubscriptionPlan().getDeletedAt() != null)
+			throw new IllegalArgumentException("해당 플랜은 구독할 수 없습니다.");
 		User user = findUserOrElseThrow(userId);
 
 		if (

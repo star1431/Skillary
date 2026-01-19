@@ -55,6 +55,7 @@ public class Subscribe {
 		this.subscriptionPlan = subscriptionPlan;
 		this.subscribeStatus = SubscribeStatusEnum.ACTIVE;
 		this.startAt = LocalDateTime.now();
+		this.endAt = this.startAt.plusMonths(1);
 	}
 
 	public boolean isActive() {
@@ -63,6 +64,21 @@ public class Subscribe {
 
 	public void inactive() {
 		this.subscribeStatus = SubscribeStatusEnum.INACTIVE;
-		this.endAt = LocalDateTime.now();
+	}
+
+	public void cancel() {
+		this.subscribeStatus = SubscribeStatusEnum.CANCELED;
+	}
+
+	public void fail() {
+		this.subscribeStatus = SubscribeStatusEnum.FAILED;
+	}
+
+	public void renew() {
+		this.endAt = LocalDateTime.now().plusMonths(1);
+	}
+
+	public boolean isInactive() {
+		return this.subscribeStatus == SubscribeStatusEnum.INACTIVE;
 	}
 }

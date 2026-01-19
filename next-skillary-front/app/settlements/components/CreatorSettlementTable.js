@@ -30,10 +30,10 @@ export default function CreatorSettlementTable({ settlements }) {
             {settlements.map((item) => (
               <tr 
                 key={item.runId} 
-                onClick={() => router.push(`/settlements/${item.runId}`)} // 클릭 시 이동
+                onClick={() => router.push(`/settlements/${item.creatorSettlementId}`)} // 클릭 시 이동
                 className="hover:bg-gray-50 transition-colors cursor-pointer" // 커서 스타일 추가
               >
-                <td className="px-6 py-4 text-sm text-gray-500">#{item.runId}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">#{item.creatorSettlementId}</td>
                 <td className="px-6 py-4 text-sm font-medium text-black">
                   {item.startAt} ~ {item.endAt}
                 </td>

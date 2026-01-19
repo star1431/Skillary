@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Loading from '@/components/Loading'; // 제공해주신 로딩 컴포넌트 임포트
 import { getAdminSettlementRuns } from '@/api/settlements';
 import SettlementHeader from '../components/SettlementHeader';
-import SettlementPagination from '../components/SettlementPagenation';
+import SettlementPagination from '../components/SettlementPagination';
 import SettlementTable from '../components/SettlementTable';
 
 export default function AdminSettlementRunsPage() {

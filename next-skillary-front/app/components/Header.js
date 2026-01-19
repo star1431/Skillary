@@ -132,6 +132,13 @@ export default function Header() {
                         >
                           마이페이지
                         </Link>
+                        <Link
+                          href="/settlements/list"
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                        정산 현황
+                        </Link>
                         <button
                           onClick={async () => {
                             await handleLogout();

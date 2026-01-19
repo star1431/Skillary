@@ -72,6 +72,7 @@ public class CreatorSettlement {
 		this.payoutAmount = 0;
 		this.creator = creator;
 		this.settlementRun = settlementRun;
+		this.settlementStatus = SettlementStatusEnum.PENDING;
 		settlementRun.getSettlements().add(this);
 		creator.getSettlements().add(this);
 	}

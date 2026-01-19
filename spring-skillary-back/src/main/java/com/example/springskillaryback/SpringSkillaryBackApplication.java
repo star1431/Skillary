@@ -11,6 +11,7 @@ import com.example.springskillaryback.repository.CreatorRepository;
 import com.example.springskillaryback.repository.PostRepository;
 import com.example.springskillaryback.repository.SubscriptionPlanRepository;
 import com.example.springskillaryback.repository.UserRepository;
+import com.example.springskillaryback.service.SubscriptionService;
 import org.springframework.boot.CommandLineRunner;
 import com.example.springskillaryback.domain.*;
 import com.example.springskillaryback.repository.*;
@@ -35,9 +36,20 @@ public class SpringSkillaryBackApplication {
 			UserRepository userRepository,
 			ContentRepository contentRepository,
 			PostRepository postRepository,
-			PasswordEncoder passwordEncoder
+			PasswordEncoder passwordEncoder,
+			OrderRepository orderRepository,
+			PaymentRepository paymentRepository,
+			SubscriptionService subscriptionService,
+			RoleRepository roleRepository
 	) {
 		return args -> {
+//			var adminRole = roleRepository.findById((byte) 2)
+//					.orElseThrow(() -> new IllegalArgumentException("admin 없음"));
+			var admin = userRepository.save(User.builder()
+			                                    .email("admin@admin.com")
+			                                    .password(passwordEncoder.encode("123456abc!"))
+			                                    .nickname("admin")
+			                                    .build());
 			var user2 = userRepository.save(User.builder()
 			                                   .email("email@email.com")
 			                                   .password(passwordEncoder.encode("123456abc!"))
@@ -71,6 +83,8 @@ public class SpringSkillaryBackApplication {
 			                                                                       .description("test")
 			                                                                       .creator(creator)
 			                                                                       .build());
+			subscriptionService.subscribe(user2, subscriptionPlan);
+
 			var content = contentRepository.save(Content.builder()
 			                                            .title("[유료] 테스트")
                                                         .description("콘텐츠소개")
@@ -79,6 +93,14 @@ public class SpringSkillaryBackApplication {
 			                                            .description("test")
 			                                            .category(CategoryEnum.IT)
 			                                            .build());
+
+			var order = new Order(1000, user2, content);
+			order = orderRepository.save(order);
+
+			var payment = new Payment(
+					"toss_pk_test_sample_key_20260118", 1000, order, CreditMethodEnum.CARD, user2
+			);
+			paymentRepository.save(payment);
 
             var post = postRepository.save(Post.builder()
                                                 .body("본문 입니다.")

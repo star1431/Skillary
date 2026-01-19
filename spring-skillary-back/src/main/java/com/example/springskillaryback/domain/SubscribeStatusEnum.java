@@ -4,5 +4,5 @@ public enum SubscribeStatusEnum {
 	INACTIVE,
 	ACTIVE,
 	CANCELED,
-	EXPIRED
+	FAILED
 }

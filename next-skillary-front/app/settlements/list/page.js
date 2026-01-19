@@ -5,7 +5,7 @@ import { getCreatorSettlements } from '@/api/settlements';
 import Loading from '@/components/Loading';
 import CreatorSettlementHeader from '../components/CreatorSettlementHeader';
 import CreatorSettlementTable from '../components/CreatorSettlementTable';
-import SettlementPagination from '../components/SettlementPagination'; // 이전에 만든 것 재사용
+import SettlementPagination from '@/admin/components/SettlementPagination';
 
 export default function CreatorSettlementPage() {
   const [settlements, setSettlements] = useState([]);

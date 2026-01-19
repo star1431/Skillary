@@ -57,6 +57,8 @@ public class SettlementRun {
 	public SettlementRun(LocalDate periodStart, LocalDate periodEnd) {
 		this.periodStart = periodStart;
 		this.periodEnd = periodEnd;
+		this.runStatus = RunStatusEnum.READY;
+		this.settlements = new HashSet<>();
 	}
 
 	public void accumulate(int amount) {

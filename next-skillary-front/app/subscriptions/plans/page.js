@@ -47,7 +47,7 @@ export default function Plans() {
 
   const handleCreatePlan = () => {
     // router는 함수가 아니라 객체이므로 .push()를 사용해야 합니다.
-    router.push('/creators/plans/create'); 
+    router.push('/subscriptions/plans/create'); 
   };
 
   if (loading) return <Loading loadingMessage='플랜 목록을 불러오는 중입니다...' />;
@@ -74,7 +74,7 @@ export default function Plans() {
         <div className="grid gap-4">
           {plans.length > 0 ? (
             plans.map((plan) => (
-              <div key={plan.id} className="bg-white p-6 rounded-2xl border border-gray-200 flex justify-between items-center shadow-sm">
+              <div key={plan.planId} className="bg-white p-6 rounded-2xl border border-gray-200 flex justify-between items-center shadow-sm">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     {/* 변수명이 DTO와 동일하게 isActive인지 확인 필요 (보통 JSON 변환 시 isActive) */}
@@ -98,13 +98,7 @@ export default function Plans() {
                 
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => router.push(`/creators/plans/edit/${plan.id}`)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                  >
-                    수정
-                  </button>
-                  <button 
-                    onClick={() => handleDeletePlan(plan.id)}
+                    onClick={() => handleDeletePlan(plan.planId)}
                     className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
                   >
                     삭제

@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createSubscriptionPlan } from '@/api/subscriptions';
 
-export default function PlanCreateForm({ onSuccess, onCancel }) {
+export default function PlanCreateForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     planName: '',
     description: '',
@@ -39,7 +41,7 @@ export default function PlanCreateForm({ onSuccess, onCancel }) {
 
       if (res) {
         alert("플랜이 성공적으로 생성되었습니다!");
-        if (onSuccess) onSuccess(); // 목록 새로고침 등의 콜백
+        router.push('/subscriptions/plans');
       }
     } catch (error) {
       console.error("플랜 생성 오류:", error);
@@ -100,7 +102,7 @@ export default function PlanCreateForm({ onSuccess, onCancel }) {
         <div className="flex gap-3 pt-4">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={() => {router.push('/subscriptions/plans')}}
             className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition"
           >
             취소

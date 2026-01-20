@@ -27,6 +27,7 @@ export default function CreateCreatorPage() {
     name: '',
     description: '',
     bio: '',
+    category: '',
     bankName: '',
     accountNumber: '',
     thumbnail: null
@@ -139,6 +140,7 @@ export default function CreateCreatorPage() {
       // 3) 크리에이터 생성(선택 필드들은 null 허용)
       await apiCreateCreator({
         introduction: asNullable(formData.bio),
+        category: formData.category,
         profile: profileUrl,
         bankName: asNullable(formData.bankName),
         accountNumber: asNullable(formData.accountNumber),
@@ -280,6 +282,33 @@ export default function CreateCreatorPage() {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* 카테고리 */}
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              카테고리 <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="">카테고리를 선택하세요</option>
+              <option value="EXERCISE">운동</option>
+              <option value="SPORTS">스포츠</option>
+              <option value="COOKING">요리</option>
+              <option value="STUDY">스터디</option>
+              <option value="ART">예술/창작</option>
+              <option value="MUSIC">음악</option>
+              <option value="PHOTO_VIDEO">사진/영상</option>
+              <option value="IT">개발/IT</option>
+              <option value="GAME">게임</option>
+              <option value="ETC">기타</option>
+            </select>
           </div>
 
           {/* 상세 소개 */}

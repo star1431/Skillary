@@ -32,7 +32,7 @@ public class SecurityConfig {
 		return http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/creators/me").authenticated() // creator/me
-                        .requestMatchers(HttpMethod.GET, "/api/creators", "/api/creators/*").permitAll() // creators, creator/{id}
+                        .requestMatchers(HttpMethod.GET, "/api/creators", "/api/creators/*", "/api/creators/recommended").permitAll() // creators, creators/{id}, /creators/recommended
                         .requestMatchers("/error", "/api/auth/register", "/api/auth/login"
                                 , "/api/auth/send-confirm", "/api/auth/send-code", "/api/auth/check-nickname"
                                 , "/api/auth/refresh", "/api/auth/logout"

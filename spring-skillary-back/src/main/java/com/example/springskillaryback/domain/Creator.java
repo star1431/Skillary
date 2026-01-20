@@ -51,6 +51,10 @@ public class Creator {
     @Builder.Default
     private Byte followCount = 0;
 
+    @Setter
+    @Column(length = 20, nullable = false)
+    private CategoryEnum category;
+
     @Builder.Default
     @Setter
 	private boolean isDeleted = false;

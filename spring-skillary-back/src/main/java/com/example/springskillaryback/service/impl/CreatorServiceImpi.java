@@ -4,6 +4,7 @@ import com.example.springskillaryback.common.dto.CreateCreatorRequest;
 import com.example.springskillaryback.common.dto.CreatorDetailResponse;
 import com.example.springskillaryback.common.dto.CreatorProfileResponse;
 import com.example.springskillaryback.common.dto.MyCreatorResponse;
+import com.example.springskillaryback.common.dto.RecommendedCreatorResponse;
 import com.example.springskillaryback.common.dto.UpdateCreatorRequest;
 import com.example.springskillaryback.domain.Creator;
 import com.example.springskillaryback.domain.Role;
@@ -48,6 +49,7 @@ public class CreatorServiceImpi implements CreatorService {
                 .displayName(user.getNickname())
                 .introduction(request.introduction())
                 .profile(request.profile())
+                .category(request.category())
                 .bankName(request.bankName())
                 .accountNumber(request.accountNumber())
                 .user(user)
@@ -70,6 +72,7 @@ public class CreatorServiceImpi implements CreatorService {
                 c.getUser() != null ? c.getUser().getNickname() : c.getDisplayName(),
                 c.getIntroduction(),
                 contentCount,
+                c.getCategory(),
                 c.getFollowCount(),
                 c.getBankName(),
                 c.getAccountNumber(),
@@ -91,6 +94,8 @@ public class CreatorServiceImpi implements CreatorService {
         c.setDisplayName(user.getNickname());
         c.setProfile(user.getProfile());
 
+        c.setCategory(request.category());
+
         c.setIntroduction(normalizeOptional(request.introduction()));
         c.setBankName(normalizeOptional(request.bankName()));
         c.setAccountNumber(normalizeOptional(request.accountNumber()));
@@ -111,6 +116,7 @@ public class CreatorServiceImpi implements CreatorService {
                         c.getCreatorId(),
                         c.getDisplayName(),
                         c.getIntroduction(),
+                        c.getCategory(),
                         c.getProfile(),
                         c.getFollowCount(),
                         c.isDeleted()
@@ -128,6 +134,7 @@ public class CreatorServiceImpi implements CreatorService {
                 c.getCreatorId(),
                 c.getDisplayName(),
                 c.getIntroduction(),
+                c.getCategory(),
                 c.getProfile(),
                 c.getFollowCount(),
                 c.getCreatedAt(),
@@ -143,5 +150,27 @@ public class CreatorServiceImpi implements CreatorService {
         
         // 정산 완료 후 완전 삭제 예정
         c.setDeleted(true);
+        creatorRepository.save(c);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecommendedCreatorResponse> getRecommendedCreators() {
+        return creatorRepository.findRecommendedCreators()
+                .stream()
+                .map(c -> {
+                    long contentCount = contentRepository.countByCreator_CreatorId(c.getCreatorId());
+                    return new RecommendedCreatorResponse(
+                            c.getCreatorId(),
+                            c.getDisplayName(),
+                            c.getIntroduction(),
+                            c.getCategory(),
+                            c.getProfile(),
+                            c.getFollowCount(),
+                            contentCount,
+                            c.isDeleted()
+                    );
+                })
+                .toList();
     }
 }

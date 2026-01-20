@@ -44,3 +44,19 @@ export async function listCreators() {
     false
   );
 }
+
+/**
+ * 추천 크리에이터 목록 조회 (구독자 수 순)
+ * - 백엔드: GET /api/creators/recommended (public)
+ * - 응답: [{ creatorId, displayName, introduction, category, profile, followCount, contentCount, isDeleted }]
+ */
+export async function getRecommendedCreators() {
+  return await baseRequest(
+    'GET',
+    {},
+    '/creators/recommended',
+    null,
+    '추천 크리에이터 목록을 불러오는데 실패했습니다.',
+    false
+  );
+}

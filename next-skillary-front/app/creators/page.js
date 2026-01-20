@@ -11,15 +11,20 @@ export default function CreatorsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
-  const handleSearch = () => {
-    // TODO: 검색 로직 구현
-  };
-  const handleCategoryChange = () => {
-    // TODO: 카테고리 변경 로직 구현
-  };
-  
-  // NOTE: 카테고리는 추후 구현 예정이라 현재는 null로 운용(필터도 "데이터 있을 때만" 적용)
-  const categories = useMemo(() => ['전체 카테고리', '개발/프로그래밍', '디자인', '마케팅', '비즈니스'], []);
+  // CategoryEnum과 매핑된 카테고리 목록 (백엔드 CategoryEnum과 동일)
+  const categories = useMemo(() => [
+    { value: '전체 카테고리', label: '전체 카테고리' },
+    { value: 'EXERCISE', label: '운동' },
+    { value: 'SPORTS', label: '스포츠' },
+    { value: 'COOKING', label: '요리' },
+    { value: 'STUDY', label: '스터디' },
+    { value: 'ART', label: '예술/창작' },
+    { value: 'MUSIC', label: '음악' },
+    { value: 'PHOTO_VIDEO', label: '사진/영상' },
+    { value: 'IT', label: '개발/IT' },
+    { value: 'GAME', label: '게임' },
+    { value: 'ETC', label: '기타' },
+  ], []);
 
   useEffect(() => {
     let alive = true;
@@ -48,18 +53,26 @@ export default function CreatorsPage() {
     const q = searchQuery.trim().toLowerCase();
     return creators
       .filter((c) => {
+        // 검색어 필터
         if (!q) return true;
         const name = String(c?.displayName ?? '').toLowerCase();
         return name.includes(q);
       })
       .filter((c) => {
+        // 카테고리 필터
         if (selectedCategory === '전체 카테고리') return true;
-        // 카테고리 데이터가 없으면(현재는 null) 필터를 적용하지 않음
         const cat = c?.category;
-        if (!cat) return true;
+        if (!cat) return false; // 카테고리가 없으면 필터링에서 제외
         return cat === selectedCategory;
       });
   }, [creators, searchQuery, selectedCategory]);
+
+  // 카테고리 라벨 매핑 함수
+  const getCategoryLabel = (categoryValue) => {
+    if (!categoryValue) return null;
+    const category = categories.find(cat => cat.value === categoryValue);
+    return category ? category.label : categoryValue;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,8 +110,8 @@ export default function CreatorsPage() {
                 className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black bg-white appearance-none pr-10 min-w-[180px]"
               >
                 {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category.value} value={category.value}>
+                    {category.label}
                   </option>
                 ))}
               </select>
@@ -132,7 +145,7 @@ export default function CreatorsPage() {
               key={creator.creatorId}
               id={creator.creatorId}
               name={creator.displayName}
-              category={null}
+              category={getCategoryLabel(creator.category)}
               description={creator.introduction ?? ''}
               subscribers={`${creator.followCount ?? 0}명`}
               avatar={creator.profile}

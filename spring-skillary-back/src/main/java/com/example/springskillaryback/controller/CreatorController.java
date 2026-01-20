@@ -4,6 +4,7 @@ import com.example.springskillaryback.common.dto.CreateCreatorRequest;
 import com.example.springskillaryback.common.dto.CreatorDetailResponse;
 import com.example.springskillaryback.common.dto.CreatorProfileResponse;
 import com.example.springskillaryback.common.dto.MyCreatorResponse;
+import com.example.springskillaryback.common.dto.RecommendedCreatorResponse;
 import com.example.springskillaryback.common.dto.UpdateCreatorRequest;
 import com.example.springskillaryback.service.CreatorService;
 import jakarta.validation.Valid;
@@ -78,5 +79,11 @@ public class CreatorController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    // 추천 크리에이터 목록 (구독자 수 순, 삭제되지 않은 것만)
+    @GetMapping("/recommended")
+    public ResponseEntity<List<RecommendedCreatorResponse>> getRecommendedCreators() {
+        return ResponseEntity.ok(creatorService.getRecommendedCreators());
     }
 }

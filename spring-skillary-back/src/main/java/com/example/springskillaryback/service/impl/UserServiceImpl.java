@@ -83,10 +83,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(Byte userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
 
         user.setDeleted(true);
+        userRepository.save(user);
     }
 }

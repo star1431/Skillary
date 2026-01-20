@@ -1,5 +1,6 @@
 package com.example.springskillaryback.common.dto;
 
+import com.example.springskillaryback.domain.CategoryEnum;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -22,6 +23,8 @@ public record UpdateCreatorRequest(
         String nickname,
 
         String profile,
+
+        CategoryEnum category,
 
         @Size(max = 500, message = "소개는 500자 이하여야 합니다")
         String introduction,

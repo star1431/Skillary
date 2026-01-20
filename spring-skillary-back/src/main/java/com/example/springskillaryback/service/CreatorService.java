@@ -4,6 +4,7 @@ import com.example.springskillaryback.common.dto.CreateCreatorRequest;
 import com.example.springskillaryback.common.dto.CreatorDetailResponse;
 import com.example.springskillaryback.common.dto.CreatorProfileResponse;
 import com.example.springskillaryback.common.dto.MyCreatorResponse;
+import com.example.springskillaryback.common.dto.RecommendedCreatorResponse;
 import com.example.springskillaryback.common.dto.UpdateCreatorRequest;
 
 import java.util.List;
@@ -22,4 +23,7 @@ public interface CreatorService {
     CreatorDetailResponse getCreatorDetail(Byte creatorId);
 
     void deleteCreator(Byte creatorId);
+
+    // 추천 크리에이터 목록 (구독자 수 순)
+    List<RecommendedCreatorResponse> getRecommendedCreators();
 }

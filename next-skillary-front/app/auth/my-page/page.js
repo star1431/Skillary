@@ -81,6 +81,24 @@ export default function MyPage() {
       .join(', ') || '-';
   };
 
+  // 카테고리 enum 값을 한글 라벨로 변환
+  const getCategoryLabel = (categoryValue) => {
+    if (!categoryValue) return null;
+    const categoryMap = {
+      'EXERCISE': '운동',
+      'SPORTS': '스포츠',
+      'COOKING': '요리',
+      'STUDY': '스터디',
+      'ART': '예술/창작',
+      'MUSIC': '음악',
+      'PHOTO_VIDEO': '사진/영상',
+      'IT': '개발/IT',
+      'GAME': '게임',
+      'ETC': '기타',
+    };
+    return categoryMap[categoryValue] || categoryValue;
+  };
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -166,12 +184,24 @@ export default function MyPage() {
             <h1 className="text-4xl font-bold text-black mb-2">마이페이지</h1>
             <p className="text-gray-600">내 정보와 활동을 확인하세요</p>
           </div>
-          <button
-            onClick={handleDeleteClick}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-sm whitespace-nowrap"
-          >
-            {viewMode === 'user' ? '유저 삭제' : '크리에이터 삭제'}
-          </button>
+          {/* 유저 삭제 버튼: viewMode가 'user'이고 isDeleted가 false일 때만 표시 */}
+          {viewMode === 'user' && !me?.isDeleted && (
+            <button
+              onClick={handleDeleteClick}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-sm whitespace-nowrap"
+            >
+              유저 삭제
+            </button>
+          )}
+          {/* 크리에이터 삭제 버튼: viewMode가 'creator'이고 isDeleted가 false일 때만 표시 */}
+          {viewMode === 'creator' && !myCreator?.isDeleted && (
+            <button
+              onClick={handleDeleteClick}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-sm whitespace-nowrap"
+            >
+              크리에이터 삭제
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -254,7 +284,14 @@ export default function MyPage() {
                         </div>
                       )}
                       <div>
-                        <h3 className="text-xl font-bold text-black mb-1">{myCreator?.nickname ?? me?.nickname ?? '-'}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-xl font-bold text-black">{myCreator?.nickname ?? me?.nickname ?? '-'}</h3>
+                          {myCreator?.category && (
+                            <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
+                              {getCategoryLabel(myCreator.category)}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-gray-600">{myCreator?.introduction ?? '-'}</p>
                       </div>
                     </div>

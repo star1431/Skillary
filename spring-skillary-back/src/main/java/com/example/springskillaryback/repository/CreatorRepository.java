@@ -21,4 +21,8 @@ public interface CreatorRepository extends JpaRepository<Creator, Byte> {
     /** 크리에이터 전체 목록(생성일 내림차순) */
     @Query("SELECT c FROM Creator c ORDER BY c.createdAt DESC")
     List<Creator> findAllByOrderByCreatedAtDesc();
+
+    /** 추천 크리에이터 목록(구독자 수 내림차순) */
+    @Query("SELECT c FROM Creator c WHERE c.isDeleted = false ORDER BY c.followCount DESC")
+    List<Creator> findRecommendedCreators();
 }

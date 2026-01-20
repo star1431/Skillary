@@ -1,12 +1,16 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 export default function HeroSection() {
+  const router = useRouter();
+
   const handleExploreCreators = () => {
-    // TODO: 크리에이터 둘러보기 로직 구현
+    router.push('/creators');
   };
 
   const handleBrowseCategories = () => {
-    // TODO: 카테고리 탐색 로직 구현
+    router.push('/contents');
   };
 
   return (
@@ -32,7 +36,7 @@ export default function HeroSection() {
             onClick={() => handleBrowseCategories()}
             className="bg-white border-2 border-black text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
           >
-            카테고리 탐색
+            콘텐츠 탐색
           </button>
         </div>
       </div>

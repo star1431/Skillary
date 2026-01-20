@@ -27,9 +27,11 @@ export default function CreatorCard({
           )}
         </div>
         <h3 className="text-lg font-bold text-black mb-2">{name}</h3>
-        <span className="inline-block bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded-full mb-3">
-          {category}
-        </span>
+        {category && (
+          <span className="inline-block bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded-full mb-3">
+            {category}
+          </span>
+        )}
       </div>
       
       <p className="text-sm text-gray-600 mb-4 text-center line-clamp-2 flex-grow">

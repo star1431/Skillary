@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -66,5 +67,16 @@ public class CreatorController {
         Byte userId = Byte.valueOf((String) authentication.getPrincipal());
         creatorService.updateCreator(userId, request);
         return ResponseEntity.noContent().build();
+    }
+
+    // 소프트 삭제 (isDeleted = true)
+    @DeleteMapping("/{creatorId}")
+    public ResponseEntity<Void> deleteCreator(@PathVariable Byte creatorId) {
+        try {
+            creatorService.deleteCreator(creatorId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

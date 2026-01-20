@@ -35,7 +35,15 @@ public class UserController {
         }
     }
 
-    // TODO: 회원 탈퇴
-//    @DeleteMapping("/{userid}")
+    // 소프트 삭제 (isDeleted = true)
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUserId(@PathVariable Byte userId) {
+        try {
+            userService.deleteUser(userId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
 }

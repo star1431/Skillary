@@ -20,4 +20,6 @@ public interface CreatorService {
 
     // 크리에이터 상세 조회
     CreatorDetailResponse getCreatorDetail(Byte creatorId);
+
+    void deleteCreator(Byte creatorId);
 }

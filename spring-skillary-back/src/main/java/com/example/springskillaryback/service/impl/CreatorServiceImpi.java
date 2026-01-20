@@ -134,4 +134,14 @@ public class CreatorServiceImpi implements CreatorService {
                 c.isDeleted()
         );
     }
+
+    @Override
+    @Transactional
+    public void deleteCreator(Byte creatorId) {
+        Creator c = creatorRepository.findById(creatorId)
+                .orElseThrow(() -> new IllegalArgumentException("크리에이터가 존재하지 않습니다"));
+        
+        // 정산 완료 후 완전 삭제 예정
+        c.setDeleted(true);
+    }
 }

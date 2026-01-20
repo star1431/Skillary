@@ -12,5 +12,6 @@ public record MeResponse (
         String profile,
         Byte subscribedCreatorCount,
         LocalDateTime createdAt,
-        Set<Role> roles
+        Set<Role> roles,
+        Boolean isDeleted
 ){}

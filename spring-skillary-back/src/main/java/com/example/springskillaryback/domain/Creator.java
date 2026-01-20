@@ -52,6 +52,7 @@ public class Creator {
     private Byte followCount = 0;
 
     @Builder.Default
+    @Setter
 	private boolean isDeleted = false;
 
 	@CreationTimestamp

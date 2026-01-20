@@ -69,10 +69,9 @@ public class SettlementServiceImpl implements SettlementService {
 	@Transactional(readOnly = true)
 	public Page<SettlementRun> pagingSettlementRuns(byte userId, int page, int size) {
 		User user = findUserOrElseThrow(userId);
-		if (!user.getRoles()
-		         .contains(RoleEnum.ROLE_ADMIN))
+		if (!user.hasRole(RoleEnum.ROLE_ADMIN))
 			throw new IllegalArgumentException("사용 권한이 없습니다.");
-		Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt")
+		Pageable pageable = PageRequest.of(page, size, Sort.by("periodStart")
 		                                                   .descending());
 		return settlementRunRepository.findAll(pageable);
 	}

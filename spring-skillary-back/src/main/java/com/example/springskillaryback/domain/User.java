@@ -145,4 +145,9 @@ public class User {
 	public boolean verifyWith(String customerKey) {
 		return this.customerKey.toString().equals(customerKey);
 	}
+
+	public boolean hasRole(RoleEnum role) {
+		return roles.stream()
+		            .anyMatch(r -> r.getRole().equals(role));
+	}
 }

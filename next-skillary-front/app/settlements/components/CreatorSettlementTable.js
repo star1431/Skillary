@@ -1,57 +1,47 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-
+// CreatorSettlementTable.js (예시)
 export default function CreatorSettlementTable({ settlements }) {
-  const router = useRouter();
-
-  if (settlements.length === 0) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-20 text-center">
-        <div className="text-5xl mb-4">💰</div>
-        <p className="text-gray-500 font-medium">아직 정산 내역이 없습니다.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-900">정산 번호</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-900">대상 기간</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-900">내 정산 금액</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-900">상태</th>
+    <div className="overflow-x-auto bg-white shadow-md rounded-lg">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">총 금액</th>
+            
+            {/* 1. 헤더 추가 */}
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">플랫폼 수수료</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">실 수령액(Net)</th>
+            
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">정산 상태</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {settlements.map((item) => (
+            <tr key={item.creatorSettlementId}>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {item.startAt} ~ {item.endAt}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {item.totalAmount.toLocaleString()}원
+              </td>
+              
+              {/* 2. 데이터 셀 추가 - DTO 필드명에 맞춤 */}
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-red-500">
+                -{item.platformFee.toLocaleString()}원
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
+                {item.netAmount.toLocaleString()}원
+              </td>
+              
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.isSettled ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {item.isSettled ? '정산 완료' : '정산 대기'}
+                </span>
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {settlements.map((item) => (
-              <tr 
-                key={item.runId} 
-                onClick={() => router.push(`/settlements/${item.creatorSettlementId}`)} // 클릭 시 이동
-                className="hover:bg-gray-50 transition-colors cursor-pointer" // 커서 스타일 추가
-              >
-                <td className="px-6 py-4 text-sm text-gray-500">#{item.creatorSettlementId}</td>
-                <td className="px-6 py-4 text-sm font-medium text-black">
-                  {item.startAt} ~ {item.endAt}
-                </td>
-                <td className="px-6 py-4 text-lg font-bold text-black">
-                  ₩{item.totalAmount.toLocaleString()}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                    item.isSettled ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {item.isSettled ? '지급 완료' : '정산 대기'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

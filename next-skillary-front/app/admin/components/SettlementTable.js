@@ -19,7 +19,6 @@ export default function SettlementTable({ settlementRuns }) {
               <th className="px-6 py-4 text-sm font-semibold text-gray-900">정산 기간</th>
               <th className="px-6 py-4 text-sm font-semibold text-gray-900">총 정산액</th>
               <th className="px-6 py-4 text-sm font-semibold text-gray-900">상태</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-900 text-right">상세</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -44,11 +43,6 @@ export default function SettlementTable({ settlementRuns }) {
                   >
                     {run.isSettled ? '지급 완료' : '정산 준비'}
                   </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-sm text-indigo-600 hover:text-indigo-900 font-medium">
-                    내역 보기
-                  </button>
                 </td>
               </tr>
             ))}

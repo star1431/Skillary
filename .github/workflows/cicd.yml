@@ -69,7 +69,7 @@ jobs:
             SPRING_MAIL_HOST=smtp.gmail.com
             SPRING_MAIL_PORT=${{ secrets.SPRING_MAIL_PORT }}
             SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}
-            SPRING_MAIL_PASSWORD=${{ SPRING_MAIL_PASSWORD }}
+            SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}
 
             APP_MAIL_FROM=noreply@skillary.com
             APP_MAIL_SUBJECT=Skillary 이메일 인증 코드

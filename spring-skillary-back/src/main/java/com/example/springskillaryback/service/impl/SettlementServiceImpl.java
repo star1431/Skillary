@@ -76,8 +76,8 @@ public class SettlementServiceImpl implements SettlementService {
 		return settlementRunRepository.findAll(pageable);
 	}
 
-	// @Scheduled(cron = "0 0 0 * * *") // 실제 운영: 매일 오전 0시
-	@Scheduled(fixedDelay = 60000)      // 테스트용: 1분마다 실행하여 로직 확인
+	@Scheduled(cron = "0 0 0 * * *") // 실제 운영: 매일 오전 0시
+	// @Scheduled(fixedDelay = 60000)      // 테스트용: 1분마다 실행하여 로직 확인
 	@Transactional
 	public void dailySettlementProcess() {
 		LocalDate today = LocalDate.now();

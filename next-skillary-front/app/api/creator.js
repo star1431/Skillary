@@ -46,6 +46,22 @@ export async function listCreators() {
 }
 
 /**
+ * 크리에이터 상세 정보 조회
+ * - 백엔드: GET /api/creators/{creatorId} (public)
+ * - 응답: { creatorId, displayName, introduction, category, profile, followCount, createdAt, isDeleted, planIds }
+ */
+export async function getCreatorDetail(creatorId) {
+  return await baseRequest(
+    'GET',
+    {},
+    `/creators/${creatorId}`,
+    null,
+    '크리에이터 상세 정보를 불러오는데 실패했습니다.',
+    false
+  );
+}
+
+/**
  * 추천 크리에이터 목록 조회 (구독자 수 순)
  * - 백엔드: GET /api/creators/recommended (public)
  * - 응답: [{ creatorId, displayName, introduction, category, profile, followCount, contentCount, isDeleted }]

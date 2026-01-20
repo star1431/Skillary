@@ -9,6 +9,7 @@ import { getCurrentUser } from '../../api/users';
 import { apiGetMyCreator } from '../../api/my-page';
 import { getSubscriptions } from '../../api/subscriptions';
 import { getSubscriptionPlan } from '../../api/subscriptions';
+import { unsubscribe } from '../../api/subscriptions';
 import CreatorBanner from './components/CreatorBanner';
 import CreatorIntroduction from './components/CreatorIntroduction';
 import CreatorContents from './components/CreatorContents';
@@ -48,39 +49,52 @@ export default function CreatorProfilePage({ params }) {
             setCurrentCreator(myCreatorData);
             setIsOwner(myCreatorData && myCreatorData.creatorId === creatorData.creatorId);
 
-            // 구독 상태 확인 (본인이 아닌 경우에만)
-            if (!isOwner && myCreatorData && myCreatorData.creatorId !== creatorData.creatorId) {
+            // 구독 상태 및 플랜
+            if (!isOwner) {
               try {
+                // 구독 목록
                 const subscriptions = await getSubscriptions(0, 100);
                 const subscribedPlans = subscriptions.content || [];
+                
                 // 해당 크리에이터의 플랜에 구독 중인지 확인
                 const hasActiveSubscription = subscribedPlans.some(
                   (sub) => sub.creatorDisplayName === creatorData.displayName && sub.status === 'ACTIVE'
                 );
                 setIsSubscribed(hasActiveSubscription);
+
+                // 구독 플랜 로드
+                if (creatorData.planIds && creatorData.planIds.length > 0) {
+                  // 각 planId로 플랜 정보 가져오기
+                  const planPromises = creatorData.planIds.map(async (planId) => {
+                    try {
+                      const plan = await getSubscriptionPlan(planId);
+                      // 해당 플랜의 구독 상태 확인 (planName과 creatorDisplayName으로 매칭)
+                      const subscription = subscribedPlans.find(
+                        (sub) => sub.planName === plan.planName && 
+                                 sub.creatorDisplayName === creatorData.displayName && 
+                                 sub.status === 'ACTIVE'
+                      );
+                      return {
+                        ...plan,
+                        isSubscribed: !!subscription,
+                        subscribeId: subscription?.subscribeId
+                      };
+                    } catch (err) {
+                      console.error(`플랜 ${planId} 로드 실패:`, err);
+                      return null;
+                    }
+                  });
+                  const plans = await Promise.all(planPromises);
+                  // null이 아닌 플랜만 필터링
+                  setSubscriptionPlans(plans.filter(plan => plan !== null));
+                } else {
+                  setSubscriptionPlans([]);
+                }
               } catch (err) {
                 console.error('구독 상태 확인 실패:', err);
-              }
-            }
-
-            // 구독 플랜 로드 (본인이 아닌 경우에만)
-            if (!isOwner && creatorData.planIds && creatorData.planIds.length > 0) {
-              try {
-                // 각 planId로 플랜 정보 가져오기
-                const planPromises = creatorData.planIds.map(planId => 
-                  getSubscriptionPlan(planId).catch(err => {
-                    console.error(`플랜 ${planId} 로드 실패:`, err);
-                    return null;
-                  })
-                );
-                const plans = await Promise.all(planPromises);
-                // null이 아닌 플랜만 필터링
-                setSubscriptionPlans(plans.filter(plan => plan !== null));
-              } catch (err) {
-                console.error('크리에이터 플랜 로드 실패:', err);
                 setSubscriptionPlans([]);
               }
-            } else if (!isOwner) {
+            } else {
               setSubscriptionPlans([]);
             }
           } catch (err) {
@@ -210,6 +224,7 @@ export default function CreatorProfilePage({ params }) {
         contentsCount={creatorContents.length}
         onSubscribe={handleSubscribe}
         onEditProfile={handleEditProfile}
+        hasSubscriptionPlans={subscriptionPlans.length > 0}
       />
 
       {/* 소개 섹션 */}

@@ -1,6 +1,25 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { getCategoryBanner } from '../../../utils/categoryUtils';
+
+// 카테고리 라벨 매핑
+const getCategoryLabel = (categoryValue) => {
+  if (!categoryValue) return null;
+  const categoryMap = {
+    'EXERCISE': '운동',
+    'SPORTS': '스포츠',
+    'COOKING': '요리',
+    'STUDY': '스터디',
+    'ART': '예술/창작',
+    'MUSIC': '음악',
+    'PHOTO_VIDEO': '사진/영상',
+    'IT': '개발/IT',
+    'GAME': '게임',
+    'ETC': '기타',
+  };
+  return categoryMap[categoryValue] || categoryValue;
+};
 
 export default function CreatorBanner({ 
   creator, 
@@ -9,12 +28,18 @@ export default function CreatorBanner({
   isSubscribed, 
   contentsCount,
   onSubscribe,
-  onEditProfile 
+  onEditProfile,
+  hasSubscriptionPlans
 }) {
   const router = useRouter();
 
+  // 카테고리에 따른 배너 색상 설정
+  const bannerInfo = creator?.category 
+    ? getCategoryBanner(creator.category)
+    : { gradientFrom: 'from-blue-100', gradientTo: 'to-blue-200' };
+
   return (
-    <div className="bg-gradient-to-br from-blue-100 to-blue-200 relative overflow-hidden">
+    <div className={`bg-gradient-to-br ${bannerInfo.gradientFrom} ${bannerInfo.gradientTo} relative overflow-hidden`}>
       <div className="absolute inset-0 bg-black bg-opacity-10"></div>
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* 수정 버튼 (소유자일 때만 표시) */}
@@ -47,6 +72,11 @@ export default function CreatorBanner({
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">{creator.displayName}</h1>
             <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+              {creator.category && (
+                <span className="inline-block bg-white bg-opacity-90 text-gray-700 text-sm px-4 py-1.5 rounded-full font-medium">
+                  {getCategoryLabel(creator.category)}
+                </span>
+              )}
               {creator.createdAt && (
                 <span className="text-white text-sm opacity-90">
                   {new Date(creator.createdAt).getFullYear()}년 {new Date(creator.createdAt).getMonth() + 1}월 가입
@@ -68,8 +98,8 @@ export default function CreatorBanner({
 
             {/* 구독 버튼 및 나의 플랜 버튼 */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-              {/* 구독 버튼: 본인이 아닌 경우에만 표시 (비로그인 사용자도 볼 수 있음) */}
-              {!isOwner && (
+              {/* 구독 버튼: 본인이 아닌 경우에만 표시, 구독 플랜이 있을 때만 표시 (비로그인 사용자도 볼 수 있음) */}
+              {!isOwner && hasSubscriptionPlans && (
                 <button
                   onClick={onSubscribe}
                   className={`px-6 py-3 rounded-lg font-semibold transition ${

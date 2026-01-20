@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 export default function SubscriptionPlanModal({ 
   isOpen, 
   subscriptionPlans, 
-  onClose 
+  onClose
 }) {
   const router = useRouter();
   const modalRef = useRef(null);
@@ -68,7 +68,11 @@ export default function SubscriptionPlanModal({
             {subscriptionPlans.map((plan) => (
               <div
                 key={plan.planId}
-                className="bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-black transition cursor-pointer"
+                className={`bg-white border-2 rounded-lg p-6 transition ${
+                  plan.isSubscribed 
+                    ? 'border-green-300' 
+                    : 'border-gray-200 hover:border-black'
+                }`}
               >
                 <div className="mb-4">
                   <h3 className="text-xl font-bold text-black mb-2">{plan.planName}</h3>
@@ -82,12 +86,21 @@ export default function SubscriptionPlanModal({
                   <p className="text-sm text-gray-700">{plan.description}</p>
                 </div>
 
-                <button
-                  onClick={() => handleSelectPlan(plan)}
-                  className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
-                >
-                  구독하기
-                </button>
+                {plan.isSubscribed ? (
+                  <button
+                    disabled
+                    className="w-full bg-gray-100 text-gray-400 py-3 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    구독중
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSelectPlan(plan)}
+                    className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
+                  >
+                    구독하기
+                  </button>
+                )}
               </div>
             ))}
           </div>

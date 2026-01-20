@@ -72,10 +72,10 @@ public class SpringSkillaryBackApplication {
             admin.getRoles().add(roleAdmin);
             user.getRoles().add(roleCreator);
             user1.getRoles().add(roleCreator);
-            userRepository.save(admin);
-            userRepository.save(user);
-            userRepository.save(user1);
-            userRepository.flush();
+            userRepository.saveAndFlush(admin);
+            userRepository.saveAndFlush(user);
+            userRepository.saveAndFlush(user1);
+
 
             var creator = creatorRepository.save(Creator.builder()
 			                                            .displayName("테스트 이름")

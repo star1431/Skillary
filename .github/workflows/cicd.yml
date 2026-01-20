@@ -54,7 +54,7 @@ jobs:
 
             SPRING_PROFILES_ACTIVE=prod
 
-            JWT_SECRET_KEY=${{ JWT_SECRET_KEY }}
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
             JWT_EXPIRE_TIME_ACCESS=180000
             JWT_EXPIRE_TIME_REFRESH=604800
 

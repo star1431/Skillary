@@ -383,13 +383,16 @@ CREATE TABLE IF NOT EXISTS cards (
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     user_id TINYINT NOT NULL,
+    customer_key TINYINT NOT NULL,
     card_number VARCHAR(100) NOT NULL,
     card_company VARCHAR(100) NOT NULL,
     card_type VARCHAR(50) NOT NULL,
     owner_type VARCHAR(50) NOT NULL,
     billing_key VARCHAR(255) NULL UNIQUE,
     CONSTRAINT fk_cards_user_id
-        FOREIGN KEY (user_id) REFERENCES users (user_id)
+        FOREIGN KEY (user_id) REFERENCES users (user_id),
+    CONSTRAINT fk_cards_customer_key
+        FOREIGN KEY (customer_key) REFERENCES users (user_id)
 )
 ENGINE=InnoDB
 DEFAULT CHARACTER SET=utf8mb4

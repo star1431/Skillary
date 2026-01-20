@@ -350,10 +350,13 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at DATE NULL,
     expired_at TIMESTAMP NOT NULL,
     user_id TINYINT NOT NULL,
+    user_user_id TINYINT NULL,
     plan_id TINYINT NULL,
     content_id TINYINT NULL,
     CONSTRAINT fk_orders_user_id
         FOREIGN KEY (user_id) REFERENCES users (user_id),
+    CONSTRAINT fk_orders_user_user_id
+        FOREIGN KEY (user_user_id) REFERENCES users (user_id),
     CONSTRAINT fk_orders_plan_id
         FOREIGN KEY (plan_id) REFERENCES subscription_plans (plan_id),
     CONSTRAINT fk_orders_content_id

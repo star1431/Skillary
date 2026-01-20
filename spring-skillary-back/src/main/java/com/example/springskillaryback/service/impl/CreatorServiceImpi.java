@@ -12,15 +12,19 @@ import com.example.springskillaryback.domain.User;
 import com.example.springskillaryback.repository.ContentRepository;
 import com.example.springskillaryback.repository.CreatorRepository;
 import com.example.springskillaryback.repository.RoleRepository;
+import com.example.springskillaryback.repository.SubscriptionPlanRepository;
 import com.example.springskillaryback.repository.UserRepository;
 import com.example.springskillaryback.service.CreatorService;
 import com.example.springskillaryback.service.UserService;
+import com.example.springskillaryback.domain.SubscriptionPlan;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +33,7 @@ public class CreatorServiceImpi implements CreatorService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final ContentRepository contentRepository;
+    private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final UserService userService;
 
     @Override
@@ -124,6 +129,13 @@ public class CreatorServiceImpi implements CreatorService {
         Creator c = creatorRepository.findById(creatorId)
                 .orElseThrow(() -> new IllegalArgumentException("크리에이터가 존재하지 않습니다"));
 
+        // 해당 크리에이터 플랜 아이디만
+        List<SubscriptionPlan> plans = subscriptionPlanRepository.findAllByCreator(c, 
+                Pageable.unpaged()).getContent();
+        List<Byte> planIds = plans.stream()
+                .map(SubscriptionPlan::getPlanId)
+                .collect(Collectors.toList());
+
         return new CreatorDetailResponse(
                 c.getCreatorId(),
                 c.getDisplayName(),
@@ -131,7 +143,8 @@ public class CreatorServiceImpi implements CreatorService {
                 c.getProfile(),
                 c.getFollowCount(),
                 c.getCreatedAt(),
-                c.isDeleted()
+                c.isDeleted(),
+                planIds
         );
     }
 

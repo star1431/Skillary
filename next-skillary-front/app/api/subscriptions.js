@@ -34,11 +34,9 @@ export async function getSubscriptionPlan(planId) {
     'GET',
     {},
     `/subscriptions/${planId}`,
-    JSON.stringify({
-      planId: planId
-    }),
+    null,
     "시스템에 등록되어있지 않습니다.",
-    true
+    false
   );
   return result;
 }

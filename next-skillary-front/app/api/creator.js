@@ -44,3 +44,20 @@ export async function listCreators() {
     false
   );
 }
+
+
+/**
+ * 크리에이터 상세 조회
+ * @returns {Promise} 해당 크리에이터의 상세 정보 
+ * (creatorId, displayName, introduction, profile, followCount, createdAt, isDeleted)
+ */
+export async function getCreatorDetail(creatorId) {
+  return await baseRequest(
+    'GET',
+    {},
+    `/creators/${creatorId}`,
+    null,
+    '크리에이터 정보를 불러오는데 실패했습니다.',
+    false
+  );
+}

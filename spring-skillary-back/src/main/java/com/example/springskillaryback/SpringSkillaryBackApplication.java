@@ -67,7 +67,17 @@ public class SpringSkillaryBackApplication {
                                                 .nickname("hello2")
                                                 .build());
 
-			var creator = creatorRepository.save(Creator.builder()
+            var roleCreator = roleRepository.findByRole(RoleEnum.ROLE_CREATOR);
+            var roleAdmin = roleRepository.findByRole(RoleEnum.ROLE_ADMIN);
+            admin.getRoles().add(roleAdmin);
+            user.getRoles().add(roleCreator);
+            user1.getRoles().add(roleCreator);
+            userRepository.save(admin);
+            userRepository.save(user);
+            userRepository.save(user1);
+            userRepository.flush();
+
+            var creator = creatorRepository.save(Creator.builder()
 			                                            .displayName("테스트 이름")
 			                                            .user(user)
 			                                            .build());
@@ -76,6 +86,7 @@ public class SpringSkillaryBackApplication {
                                                         .displayName("크리에이터2")
                                                         .user(user1)
                                                         .build());
+
 
 			var subscriptionPlan = subscriptionPlanRepository.save(SubscriptionPlan.builder()
 			                                                                       .name("테스트플랜")

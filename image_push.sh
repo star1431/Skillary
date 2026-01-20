@@ -3,7 +3,7 @@
 set -e
 
 # 1. 변수 설정 (사용자 계정명.)
-DOCKER_USER="seonghun120614"
+DOCKER_USER="star1431"
 TAG="latest"
 
 docker buildx build \

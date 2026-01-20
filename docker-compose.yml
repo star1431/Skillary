@@ -10,7 +10,7 @@ services:
         condition: service_completed_successfully
 
   front:
-    image: seonghun120614/next-skillary:latest
+    image: star1431/next-skillary:latest # 임시 테스트 - seonghun120614 -> star1431
     build:
       context: ./next-skillary-front
       dockerfile: Dockerfile
@@ -20,7 +20,7 @@ services:
         condition: service_completed_successfully
 
   back:
-    image: seonghun120614/spring-skillary:latest
+    image: star1431/spring-skillary:latest  # 임시 테스트
     build:
       context: ./spring-skillary-back
       dockerfile: Dockerfile
@@ -30,7 +30,7 @@ services:
         condition: service_healthy
 
   db:
-    image: seonghun120614/mysql-skillary:latest
+    image: star1431/mysql-skillary:latest  # 임시 테스트
     env_file: .env.db
     volumes:
       - db_data:/var/lib/mysql

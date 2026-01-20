@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { apiGetMe, apiGetMyCreator, hasCreatorRole } from '../../api/my-page';
+import { apiGetMe, apiGetMyCreator, hasCreatorRole, apiDeleteUser, apiDeleteCreator } from '../../api/my-page';
 
 /**
  * 마이페이지(조회/표시 전용)
@@ -21,10 +21,47 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [viewMode, setViewMode] = useState('user'); // 'user' | 'creator'
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // 크리에이터 생성 페이지로 이동
   const handleCreateCreator = () => {
     router.push('/creators/create');
+  };
+
+  // 삭제 확인 모달 열기
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  // 삭제 확인 모달 닫기
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+  };
+
+  // 삭제 실행
+  const handleDeleteConfirm = async () => {
+    if (deleting) return;
+
+    try {
+      setDeleting(true);
+
+      if (viewMode === 'user') {
+        // 유저 삭제
+        await apiDeleteUser(me?.userId);
+      } else if (viewMode === 'creator' && myCreator?.creatorId) {
+        // 크리에이터 삭제
+        await apiDeleteCreator(myCreator.creatorId);
+      }
+
+      // 삭제 성공 후 페이지 새로고침
+      window.location.reload();
+    } catch (err) {
+      setLoadError(err?.message || '삭제에 실패했습니다.');
+      setShowDeleteModal(false);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // 가입일(ISO string)을 한국 로케일로 안전하게 표시
@@ -124,9 +161,17 @@ export default function MyPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 페이지 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-black mb-2">마이페이지</h1>
-          <p className="text-gray-600">내 정보와 활동을 확인하세요</p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-black mb-2">마이페이지</h1>
+            <p className="text-gray-600">내 정보와 활동을 확인하세요</p>
+          </div>
+          <button
+            onClick={handleDeleteClick}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-sm whitespace-nowrap"
+          >
+            {viewMode === 'user' ? '유저 삭제' : '크리에이터 삭제'}
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -135,7 +180,12 @@ export default function MyPage() {
             {/* 프로필 카드 */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-start justify-between mb-6">
-                <h2 className="text-2xl font-bold text-black">프로필 정보</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-bold text-black">프로필 정보</h2>
+                  {(viewMode === 'user' && me?.isDeleted) || (viewMode === 'creator' && myCreator?.isDeleted) ? (
+                    <span className="text-sm text-red-600 font-medium">삭제 예정</span>
+                  ) : null}
+                </div>
                 {!isCreatorRole ? (
                   <button
                     onClick={() => handleCreateCreator()}
@@ -338,6 +388,34 @@ export default function MyPage() {
           </div>
         </div>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-black mb-4">삭제 확인</h3>
+            <p className="text-gray-700 mb-6">
+              익월 10일이 되면 완전히 삭제됩니다. 삭제 진행하겠습니까?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition disabled:opacity-50"
+              >
+                아니요
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {deleting ? '처리 중...' : '예'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

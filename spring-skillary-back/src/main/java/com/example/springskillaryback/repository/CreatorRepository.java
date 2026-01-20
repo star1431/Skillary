@@ -1,6 +1,7 @@
 package com.example.springskillaryback.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import com.example.springskillaryback.domain.Creator;
 import com.example.springskillaryback.domain.User;
 
@@ -17,4 +18,7 @@ public interface CreatorRepository extends JpaRepository<Creator, Byte> {
 
     Optional<Creator> findByUser_UserId(Byte userId);
 
+    /** 크리에이터 전체 목록(생성일 내림차순) */
+    @Query("SELECT c FROM Creator c ORDER BY c.createdAt DESC")
+    List<Creator> findAllByOrderByCreatedAtDesc();
 }

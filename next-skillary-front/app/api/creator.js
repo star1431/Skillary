@@ -28,3 +28,19 @@ export async function getCurrentCreator() {
     true // credentials: include (쿠키 전송)
   );
 }
+
+/**
+ * 크리에이터 목록 조회 (삭제되지 않은 것만)
+ * - 백엔드: GET /api/creators (public)
+ * - 응답: [{ creatorId, displayName, introduction, profile, followCount }]
+ */
+export async function listCreators() {
+  return await baseRequest(
+    'GET',
+    {},
+    '/creators',
+    null,
+    '크리에이터 목록을 불러오는데 실패했습니다.',
+    false
+  );
+}

@@ -89,3 +89,33 @@ export function hasCreatorRole(roles) {
   return getRoleNames(roles).includes('ROLE_CREATOR');
 }
 
+/**
+ * 유저 소프트 삭제
+ * - 백엔드: DELETE /api/users/{userId}
+ */
+export async function apiDeleteUser(userId) {
+  await baseRequest(
+    'DELETE',
+    {},
+    `/users/${userId}`,
+    null,
+    '유저 삭제에 실패했습니다.',
+    true,
+  );
+}
+
+/**
+ * 크리에이터 소프트 삭제
+ * - 백엔드: DELETE /api/creators/{creatorId}
+ */
+export async function apiDeleteCreator(creatorId) {
+  await baseRequest(
+    'DELETE',
+    {},
+    `/creators/${creatorId}`,
+    null,
+    '크리에이터 삭제에 실패했습니다.',
+    true,
+  );
+}
+

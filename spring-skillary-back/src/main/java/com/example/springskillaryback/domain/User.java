@@ -75,6 +75,10 @@ public class User {
     @Builder.Default
     private Byte subscribedCreatorCount = 0;
 
+    @Builder.Default
+    @Setter
+    private boolean isDeleted = false;
+
 	@Builder.Default
 	@ManyToMany
 	@JoinTable(

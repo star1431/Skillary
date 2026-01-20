@@ -32,7 +32,8 @@ public class UserServiceImpl implements UserService {
                 user.getProfile(),
                 user.getSubscribedCreatorCount(),
                 user.getCreatedAt(),
-                user.getRoles()
+                user.getRoles(),
+                user.isDeleted()
         );
     }
 
@@ -83,6 +84,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Byte userId) {
-        // TODO: 회원 탈퇴
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+        user.setDeleted(true);
     }
 }
